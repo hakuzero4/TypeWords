@@ -1,27 +1,27 @@
 <script setup lang="ts">
-import {useBaseStore} from "@/stores/base.ts";
-import {useRouter} from "vue-router";
+import { useBaseStore } from "@/stores/base.ts";
+import { useRouter } from "vue-router";
 import BaseIcon from "@/components/BaseIcon.vue";
-import {_getAccomplishDate, _getDictDataByUrl, resourceWrap, useNav} from "@/utils";
+import { _getAccomplishDate, _getDictDataByUrl, resourceWrap, useNav } from "@/utils";
 import BasePage from "@/components/BasePage.vue";
-import {DictResource} from "@/types/types.ts";
-import {watch} from "vue";
-import {getCurrentStudyWord} from "@/hooks/dict.ts";
-import {useRuntimeStore} from "@/stores/runtime.ts";
+import { DictResource } from "@/types/types.ts";
+import { watch } from "vue";
+import { getCurrentStudyWord } from "@/hooks/dict.ts";
+import { useRuntimeStore } from "@/stores/runtime.ts";
 import Book from "@/components/Book.vue";
 import PopConfirm from "@/components/PopConfirm.vue";
 import Progress from '@/components/base/Progress.vue';
 import Toast from '@/components/base/toast/Toast.ts';
 import BaseButton from "@/components/BaseButton.vue";
-import {getDefaultDict} from "@/types/func.ts";
+import { getDefaultDict } from "@/types/func.ts";
 import DeleteIcon from "@/components/icon/DeleteIcon.vue";
 import PracticeSettingDialog from "@/pages/word/components/PracticeSettingDialog.vue";
 import ChangeLastPracticeIndexDialog from "@/pages/word/components/ChangeLastPracticeIndexDialog.vue";
-import {useSettingStore} from "@/stores/setting.ts";
+import { useSettingStore } from "@/stores/setting.ts";
 import CollectNotice from "@/components/CollectNotice.vue";
-import {useFetch} from "@vueuse/core";
-import {CAN_REQUEST, DICT_LIST, PracticeSaveWordKey} from "@/config/env.ts";
-import {myDictList} from "@/apis";
+import { useFetch } from "@vueuse/core";
+import { CAN_REQUEST, DICT_LIST, PracticeSaveWordKey } from "@/config/env.ts";
+import { myDictList } from "@/apis";
 import PracticeWordListDialog from "@/pages/word/components/PracticeWordListDialog.vue";
 
 
@@ -199,9 +199,9 @@ const {
             <Progress class="mt-1" :percentage="store.currentStudyProgress" :show-text="false"></Progress>
           </div>
           <PopConfirm
-            :disabled="!isSaveData"
-            title="当前存在未完成的学习任务，修改会重新生成学习任务，是否继续？"
-            @confirm="check(()=>showChangeLastPracticeIndexDialog = true)">
+              :disabled="!isSaveData"
+              title="当前存在未完成的学习任务，修改会重新生成学习任务，是否继续？"
+              @confirm="check(()=>showChangeLastPracticeIndexDialog = true)">
             <div class="color-blue cursor-pointer">更改</div>
           </PopConfirm>
 
@@ -219,17 +219,17 @@ const {
         <div class="flex">
           <div class="flex-1 flex flex-col items-center">
             <div class="text-4xl font-bold">{{ currentStudy.new.length }}</div>
-            <div class="text">新词数</div>
+            <div class="text">新词</div>
           </div>
           <template v-if="settingStore.wordPracticeMode === 0">
             <div class="flex-1 flex flex-col items-center">
               <div class="text-4xl font-bold">{{ currentStudy.review.length }}</div>
-              <div class="text">复习单词</div>
+              <div class="text">复习上次</div>
             </div>
             <div class="flex-1 flex flex-col items-center">
               <div class="text-4xl font-bold">{{ currentStudy.write.length }}
               </div>
-              <div class="text">默写单词</div>
+              <div class="text">复习之前</div>
             </div>
           </template>
         </div>
@@ -238,15 +238,15 @@ const {
       <div class="flex flex-col items-end justify-around ">
         <div class="flex gap-1 items-center">
           每日目标
-          <div style="color:#ac6ed1;" @click="check(()=>showPracticeSettingDialog = true)"
-               class="bg-third px-2 h-10 flex center text-2xl rounded cursor-pointer">
+          <div style="color:#ac6ed1;"
+               class="bg-third px-2 h-10 flex center text-2xl rounded">
             {{ store.sdict.id ? store.sdict.perDayStudyNumber : 0 }}
           </div>
           个单词
           <PopConfirm
-            :disabled="!isSaveData"
-            title="当前存在未完成的学习任务，修改会重新生成学习任务，是否继续？"
-            @confirm="check(()=>showPracticeSettingDialog = true)">
+              :disabled="!isSaveData"
+              title="当前存在未完成的学习任务，修改会重新生成学习任务，是否继续？"
+              @confirm="check(()=>showPracticeSettingDialog = true)">
             <span class="color-blue cursor-pointer">更改</span>
           </PopConfirm>
         </div>
@@ -303,18 +303,18 @@ const {
   </BasePage>
 
   <PracticeSettingDialog
-    :show-left-option="false"
-    v-model="showPracticeSettingDialog"
-    @ok="savePracticeSetting"/>
+      :show-left-option="false"
+      v-model="showPracticeSettingDialog"
+      @ok="savePracticeSetting"/>
 
   <ChangeLastPracticeIndexDialog
-    v-model="showChangeLastPracticeIndexDialog"
-    @ok="saveLastPracticeIndex"
+      v-model="showChangeLastPracticeIndexDialog"
+      @ok="saveLastPracticeIndex"
   />
 
   <PracticeWordListDialog
-    :data="currentStudy"
-    v-model="showPracticeWordListDialog"
+      :data="currentStudy"
+      v-model="showPracticeWordListDialog"
   />
 
   <CollectNotice/>

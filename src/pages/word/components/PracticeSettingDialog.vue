@@ -16,7 +16,6 @@ import {useRuntimeStore} from "@/stores/runtime.ts";
 
 const Dialog = defineAsyncComponent(() => import('@/components/dialog/Dialog.vue'))
 
-const store = useBaseStore()
 const settings = useSettingStore()
 const runtimeStore = useRuntimeStore()
 

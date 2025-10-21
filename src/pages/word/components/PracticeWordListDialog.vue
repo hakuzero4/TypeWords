@@ -22,7 +22,7 @@ let showTranslate = $ref(false)
     <div class="px-4 pb-4 h-80vh flex gap-4">
       <div class="h-full flex flex-col gap-2">
         <div class="flex justify-between items-center">
-          <span class="title">新词</span>
+          <span class="title">新词 {{data.new.length}}</span>
         </div>
         <BaseTable
           class="overflow-auto flex-1 w-85"
@@ -42,14 +42,36 @@ let showTranslate = $ref(false)
           </template>
         </BaseTable>
       </div>
-      <div class="h-full flex flex-col gap-2">
+      <div class="h-full flex flex-col gap-2" v-if="data.review.length">
         <div class="flex justify-between items-center">
-          <span class="title">复习单词</span>
+          <span class="title">复习上次 {{data.review.length}}</span>
+        </div>
+        <BaseTable
+            class="overflow-auto flex-1 w-85"
+            :list='data.review'
+            :loading='false'
+            :show-toolbar="false"
+            :showPagination="false"
+        >
+          <template v-slot="item">
+            <WordItem
+                :item="item.item"
+                :show-translate="showTranslate">
+              <template v-slot:prefix>
+                {{ item.index }}
+              </template>
+            </WordItem>
+          </template>
+        </BaseTable>
+      </div>
+      <div class="h-full flex flex-col gap-2" v-if="data.write.length">
+        <div class="flex justify-between items-center">
+          <span class="title">复习之前 {{data.write.length}}</span>
           <Checkbox v-model="showTranslate">翻译</Checkbox>
         </div>
         <BaseTable
           class="overflow-auto flex-1 w-85"
-          :list='data.review'
+          :list='data.write'
           :loading='false'
           :show-toolbar="false"
           :showPagination="false"

@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import {ShortcutKey, Word} from "@/types/types.ts";
+import { ShortcutKey, Word } from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import {useSettingStore} from "@/stores/setting.ts";
-import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio, useTTsPlayAudio} from "@/hooks/sound.ts";
-import {emitter, EventKey} from "@/utils/eventBus.ts";
-import {nextTick, onMounted, onUnmounted, watch} from "vue";
+import { useSettingStore } from "@/stores/setting.ts";
+import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio, useTTsPlayAudio } from "@/hooks/sound.ts";
+import { emitter, EventKey } from "@/utils/eventBus.ts";
+import { nextTick, onMounted, onUnmounted, watch } from "vue";
 import Tooltip from "@/components/base/Tooltip.vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
-import {usePracticeStore} from "@/stores/practice.ts";
-import {getDefaultWord} from "@/types/func.ts";
-import {_nextTick, sleep} from "@/utils";
+import { usePracticeStore } from "@/stores/practice.ts";
+import { getDefaultWord } from "@/types/func.ts";
+import { _nextTick, sleep } from "@/utils";
 
 interface IProps {
   word: Word,
@@ -297,8 +297,8 @@ function checkCursorPosition() {
           }}]
         </div>
         <VolumeIcon
-          :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
-          ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
+            :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
+            ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
       </div>
 
       <div class="word my-1"
@@ -344,7 +344,7 @@ function checkCursorPosition() {
       </template>
 
 
-      <div class="anim" v-opacity="settingStore.translate || showFullWord">
+      <div class="anim" v-opacity="(settingStore.translate && !settingStore.dictation) || showFullWord ">
         <template v-if="word?.phrases?.length">
           <div class="flex">
             <div class="label">短语</div>
