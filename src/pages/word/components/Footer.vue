@@ -77,7 +77,7 @@ const progress = $computed(() => {
       <div class="flex justify-between items-center">
         <div class="stat">
           <div class="row">
-            <div class="num">{{ `${practiceData.index}/${practiceData.words.length}` }}</div>
+            <div class="num">{{ `${practiceData.index + 1}/${practiceData.words.length}` }}</div>
             <div class="line"></div>
             <div class="name">{{ status }}</div>
           </div>
