@@ -552,7 +552,7 @@ function importOldData() {
           <div class="line"></div>
           <SettingItem mainTitle="自动切换"/>
           <SettingItem title="自动切换下一个单词"
-                       desc="未开启自动切换时，当输入完成后请使用空格键切换下一个"
+                       desc="未开启自动切换时，当输入完成后请使用 **空格键** 切换下一个"
           >
             <Switch v-model="settingStore.autoNextWord"/>
           </SettingItem>

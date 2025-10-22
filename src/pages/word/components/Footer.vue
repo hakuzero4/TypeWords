@@ -1,9 +1,9 @@
 <script setup lang="ts">
 
-import { inject, watch } from "vue"
-import { usePracticeStore } from "@/stores/practice.ts";
-import { useSettingStore } from "@/stores/setting.ts";
-import { ShortcutKey, PracticeData } from "@/types/types.ts";
+import {inject, Ref, watch} from "vue"
+import {usePracticeStore} from "@/stores/practice.ts";
+import {useSettingStore} from "@/stores/setting.ts";
+import {PracticeData, ShortcutKey} from "@/types/types.ts";
 import BaseIcon from "@/components/BaseIcon.vue";
 import Tooltip from "@/components/base/Tooltip.vue";
 import Progress from '@/components/base/Progress.vue'
@@ -25,25 +25,27 @@ const emit = defineEmits<{
 }>()
 
 let practiceData = inject<PracticeData>('practiceData')
+let isTypingWrongWord = inject<Ref<boolean>>('isTypingWrongWord')
 
 function format(val: number, suffix: string = '', check: number = -1) {
   return val === check ? '-' : (val + suffix)
 }
 
 const status = $computed(() => {
-  let str = '正在'
+  if (isTypingWrongWord.value) return '复习错词'
+  let str = ''
   switch (statisticsStore.step) {
     case 0:
       str += `学习新词`
       break
     case 1:
-      str += `默写新词`
+      str += `默写所有新词`
       break
     case 2:
       str += `复习上次`
       break
     case 3:
-      str += `默写上次`
+      str += `默写上次所有`
       break
     case 4:
       str += '默写之前'
@@ -63,17 +65,17 @@ const progress = $computed(() => {
   <div class="footer">
     <Tooltip :title="settingStore.showToolbar?'收起':'展开'">
       <IconFluentChevronLeft20Filled
-          @click="settingStore.showToolbar = !settingStore.showToolbar"
-          class="arrow"
-          :class="!settingStore.showToolbar && 'down'"
-          color="#999"/>
+        @click="settingStore.showToolbar = !settingStore.showToolbar"
+        class="arrow"
+        :class="!settingStore.showToolbar && 'down'"
+        color="#999"/>
     </Tooltip>
 
     <div class="bottom">
       <Progress
-          :percentage="progress"
-          :stroke-width="8"
-          :show-text="false"/>
+        :percentage="progress"
+        :stroke-width="8"
+        :show-text="false"/>
       <div class="flex justify-between items-center">
         <div class="stat">
           <div class="row">
@@ -99,44 +101,44 @@ const progress = $computed(() => {
         </div>
         <div class="flex  gap-2  justify-center items-center">
           <BaseIcon
-              :class="!isSimple?'collect':'fill'"
-              @click="$emit('toggleSimple')"
-              :title="(!isSimple ? '标记为已掌握' : '取消标记已掌握')+`(${settingStore.shortcutKeyMap[ShortcutKey.ToggleSimple]})`">
+            :class="!isSimple?'collect':'fill'"
+            @click="$emit('toggleSimple')"
+            :title="(!isSimple ? '标记为已掌握' : '取消标记已掌握')+`(${settingStore.shortcutKeyMap[ShortcutKey.ToggleSimple]})`">
             <IconFluentCheckmarkCircle16Regular v-if="!isSimple"/>
             <IconFluentCheckmarkCircle16Filled v-else/>
           </BaseIcon>
 
           <BaseIcon
-              :class="!isCollect?'collect':'fill'"
-              @click.stop="$emit('toggleCollect')"
-              :title="(!isCollect ? '收藏' : '取消收藏')+`(${settingStore.shortcutKeyMap[ShortcutKey.ToggleCollect]})`">
+            :class="!isCollect?'collect':'fill'"
+            @click.stop="$emit('toggleCollect')"
+            :title="(!isCollect ? '收藏' : '取消收藏')+`(${settingStore.shortcutKeyMap[ShortcutKey.ToggleCollect]})`">
             <IconFluentStarAdd16Regular v-if="!isCollect"/>
             <IconFluentStar16Filled v-else/>
           </BaseIcon>
           <BaseIcon
-              @click="emit('skip')"
-              :title="`跳过(${settingStore.shortcutKeyMap[ShortcutKey.Next]})`">
+            @click="emit('skip')"
+            :title="`跳过(${settingStore.shortcutKeyMap[ShortcutKey.Next]})`">
             <IconFluentArrowBounce20Regular class="transform-rotate-180"/>
           </BaseIcon>
 
           <BaseIcon
-              @click="settingStore.dictation = !settingStore.dictation"
-              :title="`开关默写模式(${settingStore.shortcutKeyMap[ShortcutKey.ToggleDictation]})`"
+            @click="settingStore.dictation = !settingStore.dictation"
+            :title="`开关默写模式(${settingStore.shortcutKeyMap[ShortcutKey.ToggleDictation]})`"
           >
             <IconFluentEyeOff16Regular v-if="settingStore.dictation"/>
             <IconFluentEye16Regular v-else/>
           </BaseIcon>
 
           <BaseIcon
-              :title="`开关释义显示(${settingStore.shortcutKeyMap[ShortcutKey.ToggleShowTranslate]})`"
-              @click="settingStore.translate = !settingStore.translate">
+            :title="`开关释义显示(${settingStore.shortcutKeyMap[ShortcutKey.ToggleShowTranslate]})`"
+            @click="settingStore.translate = !settingStore.translate">
             <IconFluentTranslate16Regular v-if="settingStore.translate"/>
             <IconFluentTranslateOff16Regular v-else/>
           </BaseIcon>
 
           <BaseIcon
-              @click="settingStore.showPanel = !settingStore.showPanel"
-              :title="`单词本(${settingStore.shortcutKeyMap[ShortcutKey.TogglePanel]})`">
+            @click="settingStore.showPanel = !settingStore.showPanel"
+            :title="`单词本(${settingStore.shortcutKeyMap[ShortcutKey.TogglePanel]})`">
             <IconFluentTextListAbcUppercaseLtr20Regular/>
           </BaseIcon>
         </div>

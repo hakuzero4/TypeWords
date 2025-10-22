@@ -1,17 +1,17 @@
 <script setup lang="ts">
 
-import { onMounted, provide, watch } from "vue";
+import {onMounted, provide, ref, watch} from "vue";
 
 import Statistics from "@/pages/word/Statistics.vue";
-import { emitter, EventKey, useEvents } from "@/utils/eventBus.ts";
-import { useSettingStore } from "@/stores/setting.ts";
-import { useRuntimeStore } from "@/stores/runtime.ts";
-import { Dict, PracticeData, ShortcutKey, TaskWords, Word } from "@/types/types.ts";
-import { useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener } from "@/hooks/event.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
+import {useSettingStore} from "@/stores/setting.ts";
+import {useRuntimeStore} from "@/stores/runtime.ts";
+import {Dict, PracticeData, ShortcutKey, TaskWords, Word} from "@/types/types.ts";
+import {useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener} from "@/hooks/event.ts";
 import useTheme from "@/hooks/theme.ts";
-import { getCurrentStudyWord, useWordOptions } from "@/hooks/dict.ts";
-import { _getDictDataByUrl, cloneDeep, resourceWrap, shuffle } from "@/utils";
-import { useRoute, useRouter } from "vue-router";
+import {getCurrentStudyWord, useWordOptions} from "@/hooks/dict.ts";
+import {_getDictDataByUrl, cloneDeep, resourceWrap, shuffle, sleep} from "@/utils";
+import {useRoute, useRouter} from "vue-router";
 import Footer from "@/pages/word/components/Footer.vue";
 import Panel from "@/components/Panel.vue";
 import BaseIcon from "@/components/BaseIcon.vue";
@@ -19,15 +19,15 @@ import Tooltip from "@/components/base/Tooltip.vue";
 import WordList from "@/components/list/WordList.vue";
 import TypeWord from "@/pages/word/components/TypeWord.vue";
 import Empty from "@/components/Empty.vue";
-import { useBaseStore } from "@/stores/base.ts";
-import { usePracticeStore } from "@/stores/practice.ts";
+import {useBaseStore} from "@/stores/base.ts";
+import {usePracticeStore} from "@/stores/practice.ts";
 import Toast from '@/components/base/toast/Toast.ts'
-import { getDefaultDict, getDefaultWord } from "@/types/func.ts";
+import {getDefaultDict, getDefaultWord} from "@/types/func.ts";
 import ConflictNotice from "@/components/ConflictNotice.vue";
 import PracticeLayout from "@/components/PracticeLayout.vue";
 
-import { DICT_LIST, PracticeSaveWordKey } from "@/config/env.ts";
-import { set } from "idb-keyval";
+import {DICT_LIST, PracticeSaveWordKey} from "@/config/env.ts";
+import {set} from "idb-keyval";
 
 const {
   isWordCollect,
@@ -57,6 +57,9 @@ let data = $ref<PracticeData>({
   words: [],
   wrongWords: [],
 })
+let isTypingWrongWord = ref(false)
+provide('isTypingWrongWord', isTypingWrongWord)
+provide('practiceData', data)
 
 async function loadDict() {
   // console.log('load好了开始加载')
@@ -90,7 +93,6 @@ watch(() => store.load, (n) => {
   if (n && loading) loadDict()
 }, {immediate: true})
 
-
 onMounted(() => {
   //如果是从单词学习主页过来的，就直接使用；否则等待加载
   if (runtimeStore.routeData) {
@@ -121,12 +123,12 @@ function initData(initVal: TaskWords, init: boolean = false) {
     taskWords = initVal
     if (taskWords.new.length === 0) {
       if (taskWords.review.length) {
-        settingStore.dictation = false
+        readMode()
         statStore.step = 2
         data.words = taskWords.review
       } else {
         if (taskWords.write.length) {
-          settingStore.dictation = true
+          writeMode()
           data.words = taskWords.write
           statStore.step = 4
         } else {
@@ -135,7 +137,7 @@ function initData(initVal: TaskWords, init: boolean = false) {
         }
       }
     } else {
-      settingStore.dictation = false
+      readMode()
       data.words = taskWords.new
       statStore.step = 0
     }
@@ -150,10 +152,9 @@ function initData(initVal: TaskWords, init: boolean = false) {
     statStore.reviewWordNumber = taskWords.review.length
     statStore.writeWordNumber = taskWords.write.length
     statStore.index = 0
+    isTypingWrongWord.value = false
   }
 }
-
-provide('practiceData', data)
 
 const word = $computed(() => {
   return data.words[data.index] ?? getDefaultWord()
@@ -165,10 +166,42 @@ const nextWord: Word = $computed(() => {
   return data.words?.[data.index + 1] ?? undefined
 })
 
-function next(isTyping: boolean = true) {
-  // showStatDialog = true
-  // return
-  if (isTyping) statStore.inputWordNumber++
+function readMode() {
+  settingStore.dictation = false
+  settingStore.translate = true
+}
+
+function reviewMode() {
+  settingStore.dictation = true
+  settingStore.translate = true
+}
+
+function writeMode() {
+  settingStore.dictation = true
+  settingStore.translate = false
+}
+
+function wordLoop() {
+  let d = Math.floor(data.index / 6) - 1
+  if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
+    if (!settingStore.dictation) {
+      reviewMode()
+      data.index -= 6
+    } else {
+      readMode()
+      data.index++
+    }
+  } else {
+    data.index++
+  }
+}
+
+
+async function next(isTyping: boolean = true) {
+  debugger
+  if (isTyping) {
+    statStore.inputWordNumber++
+  }
   if (settingStore.wordPracticeMode === 1) {
     if (data.index === data.words.length - 1) {
       console.log('自由模式，全完学完了')
@@ -179,7 +212,7 @@ function next(isTyping: boolean = true) {
     }
   } else {
     if (data.index === data.words.length - 1) {
-      if ([0, 2].includes(statStore.step)) {
+      if ([0, 2].includes(statStore.step) || isTypingWrongWord.value) {
         if (!settingStore.dictation) {
           let i = data.index
           i--
@@ -190,18 +223,28 @@ function next(isTyping: boolean = true) {
           }
           console.log('i', i)
           if (i <= 0) i = -1
+          if (i + 1 == data.index) {
+            data.index = 0
+          }
           data.index = i + 1
-          settingStore.dictation = true
+          emitter.emit(EventKey.resetWord)
+          reviewMode()
           return
+        }
+      } else {
+        if (settingStore.dictation && !settingStore.translate) {
+          return readMode()
         }
       }
       if (data.wrongWords.length) {
-        settingStore.dictation = false
+        isTypingWrongWord.value = true
+        readMode()
         console.log('当前学完了，但还有错词')
         data.words = shuffle(cloneDeep(data.wrongWords))
         data.index = 0
         data.wrongWords = []
       } else {
+        isTypingWrongWord.value = false
         console.log('当前学完了，没错词', statStore.total, statStore.step, data.index)
 
         //学完了
@@ -219,7 +262,8 @@ function next(isTyping: boolean = true) {
           statStore.step++
           if (taskWords.write.length) {
             console.log('开始默认所有单词')
-            settingStore.dictation = true
+            Toast.info('默写完成后按空格键切换下一个', {duration: 10000})
+            writeMode()
             data.words = shuffle(taskWords.write)
             data.index = 0
           } else {
@@ -233,7 +277,8 @@ function next(isTyping: boolean = true) {
           statStore.step++
           if (taskWords.review.length) {
             console.log('开始默写昨日')
-            settingStore.dictation = true
+            Toast.info('默写完成后按空格键切换下一个', {duration: 10000})
+            writeMode()
             data.words = shuffle(taskWords.review)
             data.index = 0
           } else {
@@ -247,7 +292,7 @@ function next(isTyping: boolean = true) {
           statStore.step++
           if (taskWords.review.length) {
             console.log('开始复习昨日')
-            settingStore.dictation = false
+            readMode()
             data.words = shuffle(taskWords.review)
             data.index = 0
           } else {
@@ -260,27 +305,24 @@ function next(isTyping: boolean = true) {
         if (statStore.step === 0) {
           statStore.step++
           console.log('开始默写新词')
-          settingStore.dictation = true
+          Toast.info('默写完成后按空格键切换下一个', {duration: 10000})
+          writeMode()
           data.words = shuffle(taskWords.new)
           data.index = 0
         }
       }
     } else {
-      if ([0, 2].includes(statStore.step)) {
-        let d = Math.floor(data.index / 6) - 1
-        if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
-          if (!settingStore.dictation) {
-            settingStore.dictation = true
-            data.index -= 6
-          } else {
-            settingStore.dictation = false
-            data.index++
-          }
+      if ([0, 2].includes(statStore.step) || isTypingWrongWord.value) {
+        wordLoop()
+      } else {
+        if (settingStore.dictation && !settingStore.translate) {
+          readMode()
         } else {
+          writeMode()
+          await sleep(100)
           data.index++
         }
-      } else {
-        data.index++
+        // await sleep(2000)
       }
     }
   }
@@ -461,8 +503,8 @@ useEvents([
 
 <template>
   <PracticeLayout
-      v-loading="loading"
-      panelLeft="var(--word-panel-margin-left)">
+    v-loading="loading"
+    panelLeft="var(--word-panel-margin-left)">
     <template v-slot:practice>
       <div class="practice-word">
         <div class="absolute z-1 top-4   w-full" v-if="settingStore.showNearWord">
@@ -471,7 +513,7 @@ useEvents([
                v-if="prevWord">
             <IconFluentArrowLeft16Regular class="arrow" width="22"/>
             <Tooltip
-                :title="`上一个(${settingStore.shortcutKeyMap[ShortcutKey.Previous]})`"
+              :title="`上一个(${settingStore.shortcutKeyMap[ShortcutKey.Previous]})`"
             >
               <div class="word">{{ prevWord.word }}</div>
             </Tooltip>
@@ -480,7 +522,7 @@ useEvents([
                @click="next(false)"
                v-if="nextWord">
             <Tooltip
-                :title="`下一个(${settingStore.shortcutKeyMap[ShortcutKey.Next]})`"
+              :title="`下一个(${settingStore.shortcutKeyMap[ShortcutKey.Next]})`"
             >
               <div class="word" :class="settingStore.dictation && 'word-shadow'">{{ nextWord.word }}</div>
             </Tooltip>
@@ -488,10 +530,10 @@ useEvents([
           </div>
         </div>
         <TypeWord
-            ref="typingRef"
-            :word="word"
-            @wrong="onTypeWrong"
-            @complete="next"
+          ref="typingRef"
+          :word="word"
+          @wrong="onTypeWrong"
+          @complete="next"
         />
       </div>
     </template>
@@ -503,41 +545,41 @@ useEvents([
             <span>{{ store.sdict.name }} ({{ store.sdict.lastLearnIndex }} / {{ store.sdict.length }})</span>
 
             <BaseIcon
-                @click="continueStudy"
-                :title="`下一组(${settingStore.shortcutKeyMap[ShortcutKey.NextChapter]})`">
+              @click="continueStudy"
+              :title="`下一组(${settingStore.shortcutKeyMap[ShortcutKey.NextChapter]})`">
               <IconFluentArrowRight16Regular class="arrow" width="22"/>
             </BaseIcon>
             <BaseIcon
-                @click="randomWrite"
-                :title="`随机默写(${settingStore.shortcutKeyMap[ShortcutKey.RandomWrite]})`">
+              @click="randomWrite"
+              :title="`随机默写(${settingStore.shortcutKeyMap[ShortcutKey.RandomWrite]})`">
               <IconFluentArrowShuffle16Regular class="arrow" width="22"/>
             </BaseIcon>
           </div>
         </template>
         <div class="panel-page-item pl-4">
           <WordList
-              v-if="data.words.length"
-              :is-active="settingStore.showPanel"
-              :static="false"
-              :show-word="!settingStore.dictation"
-              :show-translate="settingStore.translate"
-              :list="data.words"
-              :activeIndex="data.index"
-              @click="(val:any) => data.index = val.index"
+            v-if="data.words.length"
+            :is-active="settingStore.showPanel"
+            :static="false"
+            :show-word="!settingStore.dictation"
+            :show-translate="settingStore.translate"
+            :list="data.words"
+            :activeIndex="data.index"
+            @click="(val:any) => data.index = val.index"
           >
             <template v-slot:suffix="{item,index}">
               <BaseIcon
-                  :class="!isWordCollect(item)?'collect':'fill'"
-                  @click.stop="toggleWordCollect(item)"
-                  :title="!isWordCollect(item) ? '收藏' : '取消收藏'">
+                :class="!isWordCollect(item)?'collect':'fill'"
+                @click.stop="toggleWordCollect(item)"
+                :title="!isWordCollect(item) ? '收藏' : '取消收藏'">
                 <IconFluentStar16Regular v-if="!isWordCollect(item)"/>
                 <IconFluentStar16Filled v-else/>
               </BaseIcon>
 
               <BaseIcon
-                  :class="!isWordSimple(item)?'collect':'fill'"
-                  @click.stop="toggleWordSimple(item)"
-                  :title="!isWordSimple(item) ? '标记为已掌握' : '取消标记已掌握'">
+                :class="!isWordSimple(item)?'collect':'fill'"
+                @click.stop="toggleWordSimple(item)"
+                :title="!isWordSimple(item) ? '标记为已掌握' : '取消标记已掌握'">
                 <IconFluentCheckmarkCircle16Regular v-if="!isWordSimple(item)"/>
                 <IconFluentCheckmarkCircle16Filled v-else/>
               </BaseIcon>
@@ -549,11 +591,11 @@ useEvents([
     </template>
     <template v-slot:footer>
       <Footer
-          :is-simple="isWordSimple(word)"
-          @toggle-simple="toggleWordSimpleWrapper"
-          :is-collect="isWordCollect(word)"
-          @toggle-collect="toggleWordCollect(word)"
-          @skip="next(false)"
+        :is-simple="isWordSimple(word)"
+        @toggle-simple="toggleWordSimpleWrapper"
+        :is-collect="isWordCollect(word)"
+        @toggle-collect="toggleWordCollect(word)"
+        @skip="next(false)"
       />
     </template>
   </PracticeLayout>

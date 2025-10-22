@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import { ShortcutKey, Word } from "@/types/types.ts";
+import {ShortcutKey, Word} from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import { useSettingStore } from "@/stores/setting.ts";
-import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio, useTTsPlayAudio } from "@/hooks/sound.ts";
-import { emitter, EventKey } from "@/utils/eventBus.ts";
-import { nextTick, onMounted, onUnmounted, watch } from "vue";
+import {useSettingStore} from "@/stores/setting.ts";
+import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio, useTTsPlayAudio} from "@/hooks/sound.ts";
+import {emitter, EventKey} from "@/utils/eventBus.ts";
+import {nextTick, onMounted, onUnmounted, watch} from "vue";
 import Tooltip from "@/components/base/Tooltip.vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
-import { usePracticeStore } from "@/stores/practice.ts";
-import { getDefaultWord } from "@/types/func.ts";
-import { _nextTick, sleep } from "@/utils";
+import {usePracticeStore} from "@/stores/practice.ts";
+import {getDefaultWord} from "@/types/func.ts";
+import {_nextTick, sleep} from "@/utils";
 
 interface IProps {
   word: Word,
@@ -60,7 +60,9 @@ function updateCurrentWordInfo() {
   };
 }
 
-watch(() => props.word, () => {
+watch(() => props.word, reset, {deep: true})
+
+function reset() {
   wrong = input = ''
   wordRepeatCount = 0
   inputLock = false
@@ -70,7 +72,7 @@ watch(() => props.word, () => {
   // 更新当前单词信息
   updateCurrentWordInfo();
   checkCursorPosition()
-}, {deep: true})
+}
 
 // 监听输入变化，更新当前单词信息
 watch(() => input, () => {
@@ -81,11 +83,7 @@ onMounted(() => {
   // 初始化当前单词信息
   updateCurrentWordInfo();
 
-  emitter.on(EventKey.resetWord, () => {
-    wrong = input = ''
-    updateCurrentWordInfo();
-  })
-
+  emitter.on(EventKey.resetWord, reset)
   emitter.on(EventKey.onTyping, onTyping)
 })
 
@@ -288,17 +286,17 @@ function checkCursorPosition() {
   <div class="typing-word" ref="typingWordRef" v-if="props.word.word.length">
     <div class="flex flex-col items-center">
       <div class="flex gap-1 mt-26">
-        <div class="phonetic" v-if="settingStore.soundType === 'us' && word.phonetic0">[{{
-            (settingStore.dictation && !showFullWord) ? '_'.repeat(word.phonetic0.length) : word.phonetic0
-          }}]
+        <div class="phonetic"
+             :class="(settingStore.dictation && !showFullWord) && 'word-shadow'"
+             v-if="settingStore.soundType === 'us' && word.phonetic0">[{{ word.phonetic0 }}]
         </div>
-        <div class="phonetic" v-if="settingStore.soundType === 'uk' && word.phonetic1">[{{
-            (settingStore.dictation && !showFullWord) ? '_'.repeat(word.phonetic1.length) : word.phonetic1
-          }}]
+        <div class="phonetic"
+             :class="(settingStore.dictation && !showFullWord) && 'word-shadow'"
+             v-if="settingStore.soundType === 'uk' && word.phonetic1">[{{ word.phonetic1 }}]
         </div>
         <VolumeIcon
-            :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
-            ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
+          :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
+          ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
       </div>
 
       <div class="word my-1"
@@ -331,7 +329,6 @@ function checkCursorPosition() {
     </div>
     <div class="other">
       <div class="line-white my-2"></div>
-
       <template v-if="word?.sentences?.length">
         <div class="flex flex-col gap-3">
           <div class="sentence" v-for="item in word.sentences">
