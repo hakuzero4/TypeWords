@@ -35,4 +35,4 @@ jobs:
             linux/amd64
             linux/arm64
         push: true
-        tags: hakupoint/TypeWords:latest
+        tags: hakupoint/typewords:latest
