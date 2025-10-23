@@ -1,15 +1,15 @@
 <script setup lang="ts">
-import {ShortcutKey, Word} from "@/types/types.ts";
+import { PracticeMode, ShortcutKey, Word } from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import {useSettingStore} from "@/stores/setting.ts";
-import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio, useTTsPlayAudio} from "@/hooks/sound.ts";
-import {emitter, EventKey} from "@/utils/eventBus.ts";
-import {nextTick, onMounted, onUnmounted, watch} from "vue";
-import Tooltip from "@/components/base/Tooltip.vue";
+import { useSettingStore } from "@/stores/setting.ts";
+import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio } from "@/hooks/sound.ts";
+import { emitter, EventKey } from "@/utils/eventBus.ts";
+import { inject, onMounted, onUnmounted, Ref, watch } from "vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
-import {usePracticeStore} from "@/stores/practice.ts";
-import {getDefaultWord} from "@/types/func.ts";
-import {_nextTick, sleep} from "@/utils";
+import { usePracticeStore } from "@/stores/practice.ts";
+import { getDefaultWord } from "@/types/func.ts";
+import { _nextTick, sleep } from "@/utils";
+import BaseButton from "@/components/BaseButton.vue";
 
 interface IProps {
   word: Word,
@@ -34,6 +34,8 @@ let cursor = $ref({
   top: 0,
   left: 0,
 })
+let practiceMode = inject<Ref<PracticeMode>>('practiceMode')
+
 const settingStore = useSettingStore()
 const statStore = usePracticeStore()
 
@@ -67,7 +69,9 @@ function reset() {
   wordRepeatCount = 0
   inputLock = false
   if (settingStore.wordSound) {
-    volumeIconRef?.play(400, true)
+    if (practiceMode.value !== PracticeMode.Dictation) {
+      volumeIconRef?.play(400, true)
+    }
   }
   // 更新当前单词信息
   updateCurrentWordInfo();
@@ -287,16 +291,16 @@ function checkCursorPosition() {
     <div class="flex flex-col items-center">
       <div class="flex gap-1 mt-26">
         <div class="phonetic"
-             :class="(settingStore.dictation && !showFullWord) && 'word-shadow'"
+             :class="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen,PracticeMode.Dictation].includes(practiceMode)) && !showFullWord) && 'word-shadow'"
              v-if="settingStore.soundType === 'us' && word.phonetic0">[{{ word.phonetic0 }}]
         </div>
         <div class="phonetic"
-             :class="(settingStore.dictation && !showFullWord) && 'word-shadow'"
+             :class="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen,PracticeMode.Dictation].includes(practiceMode)) && !showFullWord) && 'word-shadow'"
              v-if="settingStore.soundType === 'uk' && word.phonetic1">[{{ word.phonetic1 }}]
         </div>
         <VolumeIcon
-          :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
-          ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
+            :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
+            ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
       </div>
 
       <div class="word my-1"
@@ -307,48 +311,71 @@ function checkCursorPosition() {
       >
         <span class="input" v-if="input">{{ input }}</span>
         <span class="wrong" v-if="wrong">{{ wrong }}</span>
-        <template v-if="settingStore.dictation">
-          <span class="letter" v-if="!showFullWord">{{ displayWord.split('').map(() => '_').join('') }}</span>
+        <template v-if="settingStore.wordPracticeMode === 0">
+          <template
+              v-if="[PracticeMode.Spell,PracticeMode.Listen,PracticeMode.Dictation].includes(practiceMode)">
+            <span class="letter" v-if="!showFullWord">{{
+                displayWord.split('').map(() => (PracticeMode.Dictation === practiceMode ? '&nbsp;' : '_')).join('')
+              }}</span>
+            <span class="letter" v-else>{{ displayWord }}</span>
+          </template>
+          <span class="letter" v-else>{{ displayWord }}</span>
+        </template>
+        <template v-else>
+          <span class="letter" v-if="(settingStore.dictation && !showFullWord)">{{
+              displayWord.split('').map(() => '_').join('')
+            }}</span>
           <span class="letter" v-else>{{ displayWord }}</span>
         </template>
         <span class="letter" v-else>{{ displayWord }}</span>
       </div>
 
+      <div class="mt-4" v-if="practiceMode === PracticeMode.Identify">
+        <BaseButton size="large">不认识</BaseButton>
+        <BaseButton size="large">我认识</BaseButton>
+      </div>
+
       <div class="translate anim flex flex-col gap-2 my-3"
-           v-opacity="settingStore.translate || showFullWord"
+           v-opacity="(settingStore.translate && ![PracticeMode.Listen,PracticeMode.Identify].includes(practiceMode)) || showFullWord"
            :style="{
       fontSize: settingStore.fontSize.wordTranslateFontSize +'px',
     }"
       >
         <div class="flex" v-for="(v,i) in word.trans">
           <div class="shrink-0" :class="v.pos ? 'w-12 en-article-family' : '-ml-3'">{{ v.pos }}</div>
-          <span v-if="settingStore.dictation && !showFullWord" v-html="hideWordInTranslation(v.cn, word.word)"></span>
+          <span
+              v-if="(settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord"
+              v-html="hideWordInTranslation(v.cn, word.word)"></span>
           <span v-else>{{ v.cn }}</span>
         </div>
       </div>
     </div>
-    <div class="other">
+    <div class="other anim"
+         v-opacity="![PracticeMode.Listen,PracticeMode.Dictation,PracticeMode.Identify].includes(practiceMode) || showFullWord ">
       <div class="line-white my-2"></div>
       <template v-if="word?.sentences?.length">
         <div class="flex flex-col gap-3">
           <div class="sentence" v-for="item in word.sentences">
             <SentenceHightLightWord class="text-xl" :text="item.c" :word="word.word"
-                                    :dictation="(settingStore.dictation && !showFullWord)"/>
-            <div class="text-base anim" v-opacity="settingStore.translate  || showFullWord">{{ item.cn }}</div>
+                                    :dictation="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord)"/>
+            <div class="text-base anim"
+                 v-opacity="(settingStore.translate && ![PracticeMode.Listen].includes(practiceMode)) || showFullWord">
+              {{ item.cn }}
+            </div>
           </div>
         </div>
         <div class="line-white my-2 mb-5 anim" v-opacity="settingStore.translate  || showFullWord"></div>
       </template>
 
-
-      <div class="anim" v-opacity="(settingStore.translate && !settingStore.dictation) || showFullWord ">
+      <div class="anim"
+           v-opacity="(settingStore.translate && !(settingStore.dictation || [PracticeMode.Spell].includes(practiceMode))) || showFullWord ">
         <template v-if="word?.phrases?.length">
           <div class="flex">
             <div class="label">短语</div>
             <div class="flex flex-col">
               <div class="flex items-center gap-4" v-for="item in word.phrases">
                 <SentenceHightLightWord class="en" :text="item.c" :word="word.word"
-                                        :dictation="(settingStore.dictation && !showFullWord)"/>
+                                        :dictation="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord)"/>
                 <div class="cn anim" v-opacity="settingStore.translate">{{ item.cn }}</div>
               </div>
             </div>

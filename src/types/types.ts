@@ -209,3 +209,12 @@ export enum PracticeArticleWordType {
   Number,
   Word
 }
+
+export enum PracticeMode {
+  Free,
+  FollowWrite,//跟写
+  Spell,
+  Identify,
+  Listen,
+  Dictation
+}
