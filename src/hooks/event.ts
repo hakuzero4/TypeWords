@@ -71,7 +71,7 @@ export function useEventListener(type: string, listener: EventListenerOrEventLis
 
 export function getShortcutKey(e: KeyboardEvent) {
   let shortcutKey = ''
-  if (e.ctrlKey) shortcutKey += 'Ctrl+'
+  if (e.ctrlKey || e.metaKey) shortcutKey += 'Ctrl+'
   if (e.altKey) shortcutKey += 'Alt+'
   if (e.shiftKey) shortcutKey += 'Shift+'
   if (e.key !== 'Control' && e.key !== 'Alt' && e.key !== 'Shift') {
