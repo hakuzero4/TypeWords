@@ -35,4 +35,4 @@ jobs:
             linux/amd64
             linux/arm64
         push: true
-        tags: ${{ secrets.DOCKERHUB_USERNAME }}/TypeWords:latest
+        tags: hakupoint/TypeWords:latest
