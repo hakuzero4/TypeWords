@@ -150,7 +150,8 @@ defineRender(
                               clearable
                               modelValue={searchKey}
                               onUpdate:modelValue={debounce(e => searchKey = e)}
-                              class="flex-1">
+                              class="flex-1"
+                              autofocus>
                             {{
                               subfix: () => <IconFluentSearch24Regular
                                   class="text-lg text-gray"
