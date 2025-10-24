@@ -12,7 +12,7 @@ import {useRuntimeStore} from "@/stores/runtime.ts";
 const settingStore = useSettingStore()
 const runtimeStore = useRuntimeStore()
 const router = useRouter()
-const {toggleTheme} = useTheme()
+const {toggleTheme,getTheme} = useTheme()
 
 
 </script>
@@ -58,7 +58,7 @@ const {toggleTheme} = useTheme()
             :title="`切换主题(${settingStore.shortcutKeyMap[ShortcutKey.ToggleTheme]})`"
             @click="toggleTheme"
         >
-          <IconFluentWeatherMoon16Regular v-if="settingStore.theme === 'light'"/>
+          <IconFluentWeatherMoon16Regular v-if="getTheme() === 'light'"/>
           <IconFluentWeatherSunny16Regular v-else/>
         </BaseIcon>
       </div>
