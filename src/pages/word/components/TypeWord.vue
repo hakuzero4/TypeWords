@@ -3,7 +3,7 @@ import {PracticeMode, ShortcutKey, Word} from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
 import {useSettingStore} from "@/stores/setting.ts";
 import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio} from "@/hooks/sound.ts";
-import {emitter, EventKey} from "@/utils/eventBus.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
 import {inject, onMounted, onUnmounted, Ref, watch} from "vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
 import {usePracticeStore} from "@/stores/practice.ts";
@@ -12,6 +12,7 @@ import {_nextTick, last, sleep} from "@/utils";
 import BaseButton from "@/components/BaseButton.vue";
 import Space from "@/pages/article/components/Space.vue";
 import Toast from "@/components/base/toast/Toast.ts";
+import Tooltip from "@/components/base/Tooltip.vue";
 
 interface IProps {
   word: Word,
@@ -69,7 +70,7 @@ watch(() => props.word, reset, {deep: true})
 function reset() {
   wrong = input = ''
   wordRepeatCount = 0
-  showWordResult =  inputLock = false
+  showWordResult = inputLock = false
   if (settingStore.wordSound) {
     if (practiceMode.value !== PracticeMode.Dictation) {
       volumeIconRef?.play(400, true)
@@ -121,6 +122,28 @@ const right = $computed(() => {
   }
 })
 
+function know(e) {
+  if (practiceMode.value === PracticeMode.Identify) {
+    if (!showWordResult) {
+      inputLock = showWordResult = true
+      input = props.word.word
+      return
+    }
+  }
+  onTyping(e)
+}
+
+function unknown(e) {
+  if (practiceMode.value === PracticeMode.Identify) {
+    if (!showWordResult) {
+      showWordResult = true
+      emit('wrong')
+      return
+    }
+  }
+  onTyping(e)
+}
+
 async function onTyping(e: KeyboardEvent) {
   debugger
   let word = props.word.word
@@ -131,10 +154,10 @@ async function onTyping(e: KeyboardEvent) {
       emit('complete')
     } else {
       //当显示单词时，提示用户正确按键
-      if (showFullWord) {
+      if (showWordResult) {
         pressNumber++
         if (pressNumber >= 3) {
-          Toast.info(right ? '请按空格键切换' : '请按删除键重新输入')
+          Toast.info(right ? '请按空格键切换' : '请按删除键重新输入', {duration: 2000})
           pressNumber = 0
         }
       }
@@ -177,7 +200,7 @@ async function onTyping(e: KeyboardEvent) {
   } else {
     let right = false
     if (settingStore.ignoreCase) {
-      right = letter.toLowerCase() === props.word.word[input.length].toLowerCase()
+      right = letter.toLowerCase() === word[input.length].toLowerCase()
     } else {
       right = letter === props.word.word[input.length]
     }
@@ -196,21 +219,26 @@ async function onTyping(e: KeyboardEvent) {
     }
     // 更新当前单词信息
     updateCurrentWordInfo();
-    if (input.toLowerCase() === props.word.word.toLowerCase()) {
+    //不需要把inputLock设为false，输入完成不能再输入了，只能删除，删除会打开锁
+    if (input.toLowerCase() === word.toLowerCase()) {
       playCorrect()
-      //不需要把inputLock设为false，输入完成不能再输入了，只能删除，删除会打开锁
-      if (settingStore.autoNextWord) {
-        if (settingStore.repeatCount == 100) {
-          if (settingStore.repeatCustomCount <= wordRepeatCount + 1) {
-            setTimeout(() => emit('complete'), settingStore.waitTimeForChangeWord)
+      if ([PracticeMode.Listen, PracticeMode.Identify].includes(practiceMode.value) && !showWordResult) {
+        showWordResult = true
+      }
+      if ([PracticeMode.Free, PracticeMode.FollowWrite, PracticeMode.Spell].includes(practiceMode.value)) {
+        if (settingStore.autoNextWord) {
+          if (settingStore.repeatCount == 100) {
+            if (settingStore.repeatCustomCount <= wordRepeatCount + 1) {
+              setTimeout(() => emit('complete'), settingStore.waitTimeForChangeWord)
+            } else {
+              repeat()
+            }
           } else {
-            repeat()
-          }
-        } else {
-          if (settingStore.repeatCount <= wordRepeatCount + 1) {
-            setTimeout(() => emit('complete'), settingStore.waitTimeForChangeWord)
-          } else {
-            repeat()
+            if (settingStore.repeatCount <= wordRepeatCount + 1) {
+              setTimeout(() => emit('complete'), settingStore.waitTimeForChangeWord)
+            } else {
+              repeat()
+            }
           }
         }
       }
@@ -224,7 +252,6 @@ function del() {
   playKeyboardAudio()
   inputLock = false
   if (showWordResult) {
-    practiceMode.value = PracticeMode.Dictation
     input = ''
     showWordResult = false
   } else {
@@ -331,18 +358,18 @@ function checkCursorPosition() {
   },)
 }
 
-const word = $computed(() => {
-  return {...props.word, ...{input: 'abc'}}
-})
-
+useEvents([
+  [ShortcutKey.KnowWord, know],
+  [ShortcutKey.UnknownWord, unknown],
+])
 </script>
 
 <template>
-  <div class="typing-word" ref="typingWordRef" v-if="props.word.word.length">
+  <div class="typing-word" ref="typingWordRef" v-if="word.word.length">
     <div class="flex flex-col items-center">
       <div class="flex gap-1 mt-26">
         <div class="phonetic"
-             :class="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen,PracticeMode.Dictation].includes(practiceMode)) && !showFullWord && !showWordResult) && 'word-shadow'"
+             :class="!(!settingStore.dictation || showFullWord || showWordResult) && 'word-shadow'"
              v-if="settingStore.soundType === 'us' && word.phonetic0">[{{ word.phonetic0 }}]
         </div>
         <div class="phonetic"
@@ -350,8 +377,8 @@ const word = $computed(() => {
              v-if="settingStore.soundType === 'uk' && word.phonetic1">[{{ word.phonetic1 }}]
         </div>
         <VolumeIcon
-          :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
-          ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
+            :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
+            ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
       </div>
 
       <div class="word my-1"
@@ -363,12 +390,12 @@ const word = $computed(() => {
         <div v-if="practiceMode === PracticeMode.Dictation">
           <div class="letter text-align-center w-full inline-block"
                v-opacity="showWordResult || showFullWord">
-            {{ props.word.word }}
+            {{ word.word }}
           </div>
           <div
-            class="mt-2 w-120 dictation"
-            :style="{minHeight: settingStore.fontSize.wordForeignFontSize +'px'}"
-            :class="showWordResult ? (right ? 'right' : 'wrong') : ''">
+              class="mt-2 w-120 dictation"
+              :style="{minHeight: settingStore.fontSize.wordForeignFontSize +'px'}"
+              :class="showWordResult ? (right ? 'right' : 'wrong') : ''">
             <template v-for="i in input">
               <span class="l" v-if="i !== ' '">{{ i }}</span>
               <Space class="l" v-else :is-wrong="showWordResult ? (!right) : false" :is-wait="!showWordResult"/>
@@ -396,13 +423,19 @@ const word = $computed(() => {
         </template>
       </div>
 
-      <div class="mt-4" v-if="practiceMode === PracticeMode.Identify && !showWordResult">
-        <BaseButton size="large" @click="showWordResult = true;emit('wrong')">不认识</BaseButton>
-        <BaseButton size="large" @click="emit('complete')">我认识</BaseButton>
+      <div class="mt-4 flex gap-4" v-if="practiceMode === PracticeMode.Identify && !showWordResult">
+        <BaseButton
+            :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.KnowWord]})`"
+            size="large" @click="know">我认识
+        </BaseButton>
+        <BaseButton
+            :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.UnknownWord]})`"
+            size="large" @click="unknown">不认识
+        </BaseButton>
       </div>
 
-      <div class="translate anim flex flex-col gap-2 my-3"
-           v-opacity="(settingStore.translate && ![PracticeMode.Listen,PracticeMode.Identify].includes(practiceMode)) || showWordResult || showFullWord"
+      <div class="translate  flex flex-col gap-2 my-3"
+           v-opacity="settingStore.translate || ![PracticeMode.Listen,PracticeMode.Identify].includes(practiceMode) || showWordResult || showFullWord"
            :style="{
       fontSize: settingStore.fontSize.wordTranslateFontSize +'px',
     }"
@@ -410,8 +443,8 @@ const word = $computed(() => {
         <div class="flex" v-for="(v,i) in word.trans">
           <div class="shrink-0" :class="v.pos ? 'w-12 en-article-family' : '-ml-3'">{{ v.pos }}</div>
           <span
-            v-if="(settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord"
-            v-html="hideWordInTranslation(v.cn, word.word)"></span>
+              v-if="([PracticeMode.Listen,PracticeMode.Identify].includes(practiceMode) || settingStore.dictation) && !(showWordResult || showFullWord)"
+              v-html="hideWordInTranslation(v.cn, word.word)"></span>
           <span v-else>{{ v.cn }}</span>
         </div>
       </div>
@@ -423,26 +456,27 @@ const word = $computed(() => {
         <div class="flex flex-col gap-3">
           <div class="sentence" v-for="item in word.sentences">
             <SentenceHightLightWord class="text-xl" :text="item.c" :word="word.word"
-                                    :dictation="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord)"/>
+                                    :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
             <div class="text-base anim"
-                 v-opacity="(settingStore.translate && ![PracticeMode.Listen].includes(practiceMode)) || showFullWord">
+                 v-opacity="settingStore.translate || showFullWord || showWordResult">
               {{ item.cn }}
             </div>
           </div>
         </div>
-        <div class="line-white my-2 mb-5 anim" v-opacity="settingStore.translate  || showFullWord"></div>
+        <div class="line-white my-2 mb-5 anim"
+             v-opacity="settingStore.translate || showFullWord || showWordResult"></div>
       </template>
 
       <div class="anim"
-           v-opacity="(settingStore.translate && !(settingStore.dictation || [PracticeMode.Spell].includes(practiceMode))) || showFullWord ">
+           v-opacity="settingStore.translate || showFullWord || showWordResult">
         <template v-if="word?.phrases?.length">
           <div class="flex">
             <div class="label">短语</div>
             <div class="flex flex-col">
               <div class="flex items-center gap-4" v-for="item in word.phrases">
                 <SentenceHightLightWord class="en" :text="item.c" :word="word.word"
-                                        :dictation="((settingStore.dictation || [PracticeMode.Spell,PracticeMode.Listen].includes(practiceMode)) && !showFullWord)"/>
-                <div class="cn anim" v-opacity="settingStore.translate">{{ item.cn }}</div>
+                                        :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
+                <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">{{ item.cn }}</div>
               </div>
             </div>
           </div>
@@ -510,7 +544,7 @@ const word = $computed(() => {
 
 <style scoped lang="scss">
 .dictation {
-  border-bottom: 1px solid black;
+  border-bottom: 2px solid black;
 }
 
 .typing-word {

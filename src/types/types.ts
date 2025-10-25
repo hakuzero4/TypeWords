@@ -117,7 +117,9 @@ export enum ShortcutKey {
   ToggleConciseMode = 'ToggleConciseMode',
   TogglePanel = 'TogglePanel',
   RandomWrite = 'RandomWrite',
-  NextRandomWrite = 'NextRandomWrite'
+  NextRandomWrite = 'NextRandomWrite',
+  KnowWord = 'KnowWord',
+  UnknownWord = 'UnknownWord',
 }
 
 export const DefaultShortcutKeyMap = {
@@ -139,6 +141,8 @@ export const DefaultShortcutKeyMap = {
   [ShortcutKey.TogglePanel]: 'Ctrl+L',
   [ShortcutKey.RandomWrite]: 'Ctrl+R',
   [ShortcutKey.NextRandomWrite]: 'Ctrl+Shift+R',
+  [ShortcutKey.KnowWord]: '1',
+  [ShortcutKey.UnknownWord]: '2',
 }
 
 export enum TranslateEngine {
@@ -189,6 +193,7 @@ export interface PracticeData {
   index: number,
   words: any[],
   wrongWords: any[],
+  excludeWords: any[],
 }
 
 export interface TaskWords {
@@ -211,7 +216,6 @@ export enum PracticeArticleWordType {
 }
 
 export enum PracticeMode {
-  Free,
   FollowWrite,//跟写
   Spell,
   Identify,

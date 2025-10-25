@@ -1,17 +1,17 @@
 <script setup lang="ts">
 
-import { onMounted, provide, ref, watch } from "vue";
+import {onMounted, provide, ref, watch} from "vue";
 
 import Statistics from "@/pages/word/Statistics.vue";
-import { emitter, EventKey, useEvents } from "@/utils/eventBus.ts";
-import { useSettingStore } from "@/stores/setting.ts";
-import { useRuntimeStore } from "@/stores/runtime.ts";
-import { Dict, PracticeData, PracticeMode, ShortcutKey, TaskWords, Word } from "@/types/types.ts";
-import { useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener } from "@/hooks/event.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
+import {useSettingStore} from "@/stores/setting.ts";
+import {useRuntimeStore} from "@/stores/runtime.ts";
+import {Dict, PracticeData, PracticeMode, ShortcutKey, TaskWords, Word} from "@/types/types.ts";
+import {useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener} from "@/hooks/event.ts";
 import useTheme from "@/hooks/theme.ts";
-import { getCurrentStudyWord, useWordOptions } from "@/hooks/dict.ts";
-import { _getDictDataByUrl, cloneDeep, resourceWrap, shuffle, sleep } from "@/utils";
-import { useRoute, useRouter } from "vue-router";
+import {getCurrentStudyWord, useWordOptions} from "@/hooks/dict.ts";
+import {_getDictDataByUrl, cloneDeep, resourceWrap, shuffle, sleep} from "@/utils";
+import {useRoute, useRouter} from "vue-router";
 import Footer from "@/pages/word/components/Footer.vue";
 import Panel from "@/components/Panel.vue";
 import BaseIcon from "@/components/BaseIcon.vue";
@@ -19,16 +19,16 @@ import Tooltip from "@/components/base/Tooltip.vue";
 import WordList from "@/components/list/WordList.vue";
 import TypeWord from "@/pages/word/components/TypeWord.vue";
 import Empty from "@/components/Empty.vue";
-import { useBaseStore } from "@/stores/base.ts";
-import { usePracticeStore } from "@/stores/practice.ts";
+import {useBaseStore} from "@/stores/base.ts";
+import {usePracticeStore} from "@/stores/practice.ts";
 import Toast from '@/components/base/toast/Toast.ts'
-import { getDefaultDict, getDefaultWord } from "@/types/func.ts";
+import {getDefaultDict, getDefaultWord} from "@/types/func.ts";
 import ConflictNotice from "@/components/ConflictNotice.vue";
 import PracticeLayout from "@/components/PracticeLayout.vue";
 
-import { DICT_LIST, PracticeSaveWordKey } from "@/config/env.ts";
-import { set } from "idb-keyval";
-import { ToastInstance } from "@/components/base/toast/type.ts";
+import {DICT_LIST, PracticeSaveWordKey} from "@/config/env.ts";
+import {set} from "idb-keyval";
+import {ToastInstance} from "@/components/base/toast/type.ts";
 
 const {
   isWordCollect,
@@ -50,13 +50,14 @@ let loading = $ref(false)
 let taskWords = $ref<TaskWords>({
   new: [],
   review: [],
-  write: []
+  write: [],
 })
 
 let data = $ref<PracticeData>({
   index: 0,
   words: [],
   wrongWords: [],
+  excludeWords: [],
 })
 let isTypingWrongWord = ref(false)
 
@@ -127,12 +128,12 @@ function initData(initVal: TaskWords, init: boolean = false) {
     taskWords = initVal
     if (taskWords.new.length === 0) {
       if (taskWords.review.length) {
-        readMode()
+        practiceMode.value = PracticeMode.Identify
         statStore.step = 2
         data.words = taskWords.review
       } else {
         if (taskWords.write.length) {
-          writeMode()
+          practiceMode.value = PracticeMode.Identify
           data.words = taskWords.write
           statStore.step = 4
         } else {
@@ -141,12 +142,13 @@ function initData(initVal: TaskWords, init: boolean = false) {
         }
       }
     } else {
-      readMode()
+      practiceMode.value = PracticeMode.FollowWrite
       data.words = taskWords.new
       statStore.step = 0
     }
     data.index = 0
     data.wrongWords = []
+    data.excludeWords = []
     allWrongWords.clear()
     statStore.startDate = Date.now()
     statStore.inputWordNumber = 0
@@ -160,7 +162,7 @@ function initData(initVal: TaskWords, init: boolean = false) {
   }
 }
 
-const word = $computed(() => {
+const word = $computed<Word>(() => {
   return data.words[data.index] ?? getDefaultWord()
 })
 const prevWord: Word = $computed(() => {
@@ -170,19 +172,27 @@ const nextWord: Word = $computed(() => {
   return data.words?.[data.index + 1] ?? undefined
 })
 
-function readMode() {
-  practiceMode.value = PracticeMode.FollowWrite
-  settingStore.dictation = false
-  settingStore.translate = true
-}
-
-function writeMode() {
-  practiceMode.value = PracticeMode.Dictation
-  settingStore.dictation = true
-  settingStore.translate = false
-}
+watch(practiceMode, (n) => {
+  switch (n) {
+    case PracticeMode.Spell:
+    case PracticeMode.Dictation:
+    case PracticeMode.Listen:
+      settingStore.dictation = true;
+      settingStore.translate = false;
+      break
+    case PracticeMode.FollowWrite:
+      settingStore.dictation = false;
+      settingStore.translate = true;
+      break
+    case PracticeMode.Identify:
+      settingStore.dictation = false;
+      settingStore.translate = false;
+      break
+  }
+})
 
 function wordLoop() {
+  return data.index++
   let d = Math.floor(data.index / 6) - 1
   if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
     if (practiceMode.value === PracticeMode.FollowWrite) {
@@ -200,7 +210,6 @@ function wordLoop() {
 let toastInstance: ToastInstance = null
 
 async function next(isTyping: boolean = true) {
-  debugger
   if (isTyping) {
     statStore.inputWordNumber++
   }
@@ -262,7 +271,7 @@ async function next(isTyping: boolean = true) {
           toastInstance?.close()
           toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
           practiceMode.value = PracticeMode.Dictation
-          data.words = shuffle(taskWords.new)
+          data.words = shuffle(taskWords.write)
           data.index = 0
         }
 
@@ -273,7 +282,7 @@ async function next(isTyping: boolean = true) {
           toastInstance?.close()
           toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
           practiceMode.value = PracticeMode.Listen
-          data.words = shuffle(taskWords.review)
+          data.words = shuffle(taskWords.write)
           data.index = 0
         }
 
@@ -300,7 +309,7 @@ async function next(isTyping: boolean = true) {
           toastInstance?.close()
           toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
           practiceMode.value = PracticeMode.Dictation
-          data.words = shuffle(taskWords.new)
+          data.words = shuffle(taskWords.review)
           data.index = 0
         }
 
@@ -355,43 +364,10 @@ async function next(isTyping: boolean = true) {
     } else {
       if (statStore.step === 0) {
         wordLoop()
-      } else if (statStore.step === 1) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 2) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 3) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 4) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 5) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 6) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 7) {
-        if (isTypingWrongWord.value) wordLoop()
-        else data.index++
-      } else if (statStore.step === 8) {
+      } else {
         if (isTypingWrongWord.value) wordLoop()
         else data.index++
       }
-      // if ([0, 2].includes(statStore.step) || isTypingWrongWord.value) {
-      //   wordLoop()
-      // } else {
-      //   if (settingStore.dictation && !settingStore.translate) {
-      //     readMode()
-      //   } else {
-      //     writeMode()
-      //     await sleep(100)
-      //     data.index++
-      //   }
-      //   // await sleep(2000)
-      // }
     }
   }
   savePracticeData()
@@ -489,12 +465,16 @@ function play() {
 
 function toggleWordSimpleWrapper() {
   if (!isWordSimple(word)) {
-    toggleWordSimple(word)
     //延迟一下，不知道为什么不延迟会导致当前条目不自动定位到列表中间
     setTimeout(() => next(false))
-  } else {
-    toggleWordSimple(word)
   }
+  let rIndex = data.excludeWords.findIndex(v => v === word.word)
+  if (rIndex > -1) {
+    data.excludeWords.splice(rIndex, 1)
+  } else {
+    data.excludeWords.push(word.word)
+  }
+  toggleWordSimple(word)
 }
 
 function toggleTranslate() {

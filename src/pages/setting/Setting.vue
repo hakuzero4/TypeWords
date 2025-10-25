@@ -151,7 +151,9 @@ function getShortcutKeyName(key: string): string {
     'ToggleConciseMode': '切换简洁模式',
     'TogglePanel': '切换面板',
     'RandomWrite': '随机默写',
-    'NextRandomWrite': '继续随机默写'
+    'NextRandomWrite': '继续随机默写',
+    'KnowWord': '认识单词',
+    'UnknownWord': '不认识单词',
   }
 
   return shortcutKeyNameMap[key] || key
