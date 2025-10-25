@@ -191,9 +191,9 @@ export const SlideType = {
 
 export interface PracticeData {
   index: number,
-  words: any[],
-  wrongWords: any[],
-  excludeWords: any[],
+  words: Word[],
+  wrongWords: Word[],
+  excludeWords: string[],
 }
 
 export interface TaskWords {

@@ -24,7 +24,8 @@ const props = withDefaults(defineProps<IProps>(), {
 
 const emit = defineEmits<{
   complete: [],
-  wrong: []
+  wrong: [],
+  know:[],
 }>()
 
 let input = $ref('')
@@ -127,6 +128,7 @@ function know(e) {
     if (!showWordResult) {
       inputLock = showWordResult = true
       input = props.word.word
+      emit('know')
       return
     }
   }
@@ -180,6 +182,7 @@ async function onTyping(e: KeyboardEvent) {
           } else {
             //未显示单词，则播放正确音乐，并在后面设置为 showWordResult 为 true 来显示单词
             playCorrect()
+            volumeIconRef?.play()
           }
         } else {
           //错误处理

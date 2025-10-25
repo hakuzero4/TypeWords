@@ -173,6 +173,7 @@ const nextWord: Word = $computed(() => {
 })
 
 watch(practiceMode, (n) => {
+  if (settingStore.wordPracticeMode === 1) return
   switch (n) {
     case PracticeMode.Spell:
     case PracticeMode.Dictation:
@@ -189,10 +190,10 @@ watch(practiceMode, (n) => {
       settingStore.translate = false;
       break
   }
-})
+}, {immediate: true})
 
 function wordLoop() {
-  return data.index++
+  // return data.index++
   let d = Math.floor(data.index / 6) - 1
   if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
     if (practiceMode.value === PracticeMode.FollowWrite) {
@@ -204,6 +205,25 @@ function wordLoop() {
     }
   } else {
     data.index++
+  }
+}
+
+function goNextStep(originList, mode, msg) {
+  //每次都判断，因为每次都可能新增已掌握的单词
+  let list = originList.filter(v => (!data.excludeWords.includes(v.word)))
+  console.log(msg)
+  if (list.length) {
+    if (toastInstance) toastInstance.close()
+    toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 5000})
+    data.words = list
+    practiceMode.value = mode
+    data.index = 0
+    statStore.step++
+  } else {
+    console.log(msg + ':无单词略过')
+    statStore.step++
+    statStore.step++
+    next()
   }
 }
 
@@ -243,6 +263,7 @@ async function next(isTyping: boolean = true) {
           return
         }
       }
+      data.wrongWords = data.wrongWords.filter(v => (!data.excludeWords.includes(v.word)))
       if (data.wrongWords.length) {
         isTypingWrongWord.value = true
         practiceMode.value = PracticeMode.FollowWrite
@@ -253,7 +274,6 @@ async function next(isTyping: boolean = true) {
       } else {
         isTypingWrongWord.value = false
         console.log('当前学完了，没错词', statStore.total, statStore.step, data.index)
-
         //学完了
         if (statStore.step === 8) {
           statStore.spend = Date.now() - statStore.startDate
@@ -261,104 +281,46 @@ async function next(isTyping: boolean = true) {
           showStatDialog = true
           localStorage.removeItem(PracticeSaveWordKey.key)
           return;
-          // emit('complete', {})
         }
 
         //开始默写之前
         if (statStore.step === 7) {
-          statStore.step++
-          console.log('开始默写之前')
-          toastInstance?.close()
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Dictation
-          data.words = shuffle(taskWords.write)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.write), PracticeMode.Dictation, '开始默写之前')
         }
 
         //开始听写之前
         if (statStore.step === 6) {
-          statStore.step++
-          console.log('开始听写之前')
-          toastInstance?.close()
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Listen
-          data.words = shuffle(taskWords.write)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.write), PracticeMode.Listen, '开始听写之前')
         }
 
         //开始复写之前
         if (statStore.step === 5) {
-          statStore.step++
-          if (taskWords.review.length) {
-            console.log('开始复写之前')
-            data.words = taskWords.write
-            practiceMode.value = PracticeMode.Identify
-            data.index = 0
-          } else {
-            console.log('开始复写之前-无单词略过')
-            statStore.step++
-            statStore.step++
-            return next()
-          }
+          return goNextStep(taskWords.write, PracticeMode.Identify, '开始复写之前')
         }
 
         //开始默写上次
         if (statStore.step === 4) {
-          statStore.step++
-          console.log('开始默写上次')
-          toastInstance?.close()
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Dictation
-          data.words = shuffle(taskWords.review)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.review), PracticeMode.Dictation, '开始默写上次')
         }
 
         //开始听写上次
         if (statStore.step === 3) {
-          statStore.step++
-          console.log('开始听写上次')
-          toastInstance?.close()
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Listen
-          data.words = shuffle(taskWords.review)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.review), PracticeMode.Listen, '开始听写上次')
         }
 
         //开始复写昨日
         if (statStore.step === 2) {
-          statStore.step++
-          if (taskWords.review.length) {
-            console.log('开始复写昨日')
-            data.words = taskWords.review
-            practiceMode.value = PracticeMode.Identify
-            data.index = 0
-          } else {
-            console.log('开始复写昨日-无单词略过')
-            statStore.step++
-            statStore.step++
-            return next()
-          }
+          return goNextStep(taskWords.review, PracticeMode.Identify, '开始复写昨日')
         }
 
         //开始默写新词
         if (statStore.step === 1) {
-          statStore.step++
-          console.log('开始默写新词')
-          toastInstance?.close()
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Dictation
-          data.words = shuffle(taskWords.new)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.new), PracticeMode.Dictation, '开始默写新词')
         }
 
         //开始听写新词
         if (statStore.step === 0) {
-          statStore.step++
-          console.log('开始听写新词')
-          toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 10000})
-          practiceMode.value = PracticeMode.Listen
-          data.words = shuffle(taskWords.new)
-          data.index = 0
+          return goNextStep(shuffle(taskWords.new), PracticeMode.Listen, '开始听写新词')
         }
       }
     } else {
@@ -371,6 +333,14 @@ async function next(isTyping: boolean = true) {
     }
   }
   savePracticeData()
+}
+
+function onWordKnow() {
+  //标记模式时，用户认识的单词加入到排除里面，后续不再复习
+  let rIndex = data.excludeWords.findIndex(v => v === word.word)
+  if (rIndex < 0) {
+    data.excludeWords.push(word.word)
+  }
 }
 
 function onTypeWrong() {
@@ -452,6 +422,7 @@ function skip(e: KeyboardEvent) {
 }
 
 function show(e: KeyboardEvent) {
+  if (![PracticeMode.FollowWrite].includes(practiceMode.value)) onTypeWrong()
   typingRef.showWord()
 }
 
@@ -582,6 +553,7 @@ useEvents([
             :word="word"
             @wrong="onTypeWrong"
             @complete="next"
+            @know="onWordKnow"
         />
       </div>
     </template>
