@@ -3,7 +3,7 @@
 import { inject, Ref, watch } from "vue"
 import { usePracticeStore } from "@/stores/practice.ts";
 import { useSettingStore } from "@/stores/setting.ts";
-import { PracticeData, PracticeMode, ShortcutKey } from "@/types/types.ts";
+import { PracticeData, WordPracticeType, ShortcutKey } from "@/types/types.ts";
 import BaseIcon from "@/components/BaseIcon.vue";
 import Tooltip from "@/components/base/Tooltip.vue";
 import Progress from '@/components/base/Progress.vue'
@@ -26,7 +26,6 @@ const emit = defineEmits<{
 
 let practiceData = inject<PracticeData>('practiceData')
 let isTypingWrongWord = inject<Ref<boolean>>('isTypingWrongWord')
-let practiceMode = inject<Ref<PracticeMode>>('practiceMode')
 
 function format(val: number, suffix: string = '', check: number = -1) {
   return val === check ? '-' : (val + suffix)
@@ -97,7 +96,7 @@ const progress = $computed(() => {
             <div class="name">{{ status }}</div>
           </div>
           <div class="row">
-            <div class="num">{{ statisticsStore.total }}{{ practiceMode }}</div>
+            <div class="num">{{ statisticsStore.total }}</div>
             <div class="line"></div>
             <div class="name">单词总数</div>
           </div>

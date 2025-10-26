@@ -4,7 +4,7 @@ import { useSettingStore } from "@/stores/setting.ts";
 import { getAudioFileUrl, usePlayAudio } from "@/hooks/sound.ts";
 import { getShortcutKey, useEventListener } from "@/hooks/event.ts";
 import { checkAndUpgradeSaveDict, checkAndUpgradeSaveSetting, cloneDeep, loadJsLib, shakeCommonDict } from "@/utils";
-import { DefaultShortcutKeyMap, ShortcutKey } from "@/types/types.ts";
+import {DefaultShortcutKeyMap, ShortcutKey, WordPracticeMode} from "@/types/types.ts";
 import BaseButton from "@/components/BaseButton.vue";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
 import { useBaseStore } from "@/stores/base.ts";
@@ -489,8 +489,8 @@ function importOldData() {
         <div v-if="tabIndex === 1">
           <SettingItem title="练习模式">
             <RadioGroup v-model="settingStore.wordPracticeMode" class="flex-col gap-0!">
-              <Radio :value="0" label="智能模式，系统自动计算复习单词与默写单词"/>
-              <Radio :value="1" label="自由模式，系统不强制复习与默写"/>
+              <Radio :value="WordPracticeMode.System" label="智能模式，系统自动计算复习单词与默写单词"/>
+              <Radio :value="WordPracticeMode.Free" label="自由模式，系统不强制复习与默写"/>
             </RadioGroup>
           </SettingItem>
 

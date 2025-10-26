@@ -6,11 +6,11 @@ import Statistics from "@/pages/word/Statistics.vue";
 import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
 import {useSettingStore} from "@/stores/setting.ts";
 import {useRuntimeStore} from "@/stores/runtime.ts";
-import {Dict, PracticeData, PracticeMode, ShortcutKey, TaskWords, Word} from "@/types/types.ts";
+import {Dict, PracticeData, WordPracticeType, ShortcutKey, TaskWords, Word, WordPracticeMode} from "@/types/types.ts";
 import {useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener} from "@/hooks/event.ts";
 import useTheme from "@/hooks/theme.ts";
 import {getCurrentStudyWord, useWordOptions} from "@/hooks/dict.ts";
-import {_getDictDataByUrl, cloneDeep, resourceWrap, shuffle, sleep} from "@/utils";
+import {_getDictDataByUrl, cloneDeep, resourceWrap, shuffle} from "@/utils";
 import {useRoute, useRouter} from "vue-router";
 import Footer from "@/pages/word/components/Footer.vue";
 import Panel from "@/components/Panel.vue";
@@ -27,7 +27,6 @@ import ConflictNotice from "@/components/ConflictNotice.vue";
 import PracticeLayout from "@/components/PracticeLayout.vue";
 
 import {DICT_LIST, PracticeSaveWordKey} from "@/config/env.ts";
-import {set} from "idb-keyval";
 import {ToastInstance} from "@/components/base/toast/type.ts";
 
 const {
@@ -61,7 +60,7 @@ let data = $ref<PracticeData>({
 })
 let isTypingWrongWord = ref(false)
 
-let practiceMode = ref(PracticeMode.FollowWrite)
+let practiceMode = ref(WordPracticeType.FollowWrite)
 provide('isTypingWrongWord', isTypingWrongWord)
 provide('practiceData', data)
 provide('practiceMode', practiceMode)
@@ -128,21 +127,21 @@ function initData(initVal: TaskWords, init: boolean = false) {
     taskWords = initVal
     if (taskWords.new.length === 0) {
       if (taskWords.review.length) {
-        practiceMode.value = PracticeMode.Identify
-        statStore.step = 2
+        settingStore.wordPracticeType = WordPracticeType.Identify
+        statStore.step = 3
         data.words = taskWords.review
       } else {
         if (taskWords.write.length) {
-          practiceMode.value = PracticeMode.Identify
+          settingStore.wordPracticeType = WordPracticeType.Identify
           data.words = taskWords.write
-          statStore.step = 4
+          statStore.step = 6
         } else {
           Toast.warning('没有可学习的单词！')
           router.push('/word')
         }
       }
     } else {
-      practiceMode.value = PracticeMode.FollowWrite
+      settingStore.wordPracticeType = WordPracticeType.FollowWrite
       data.words = taskWords.new
       statStore.step = 0
     }
@@ -172,20 +171,20 @@ const nextWord: Word = $computed(() => {
   return data.words?.[data.index + 1] ?? undefined
 })
 
-watch(practiceMode, (n) => {
-  if (settingStore.wordPracticeMode === 1) return
+watch(() => settingStore.wordPracticeType, (n) => {
+  if (settingStore.wordPracticeMode === WordPracticeMode.Free) return
   switch (n) {
-    case PracticeMode.Spell:
-    case PracticeMode.Dictation:
-    case PracticeMode.Listen:
+    case WordPracticeType.Spell:
+    case WordPracticeType.Dictation:
+    case WordPracticeType.Listen:
       settingStore.dictation = true;
       settingStore.translate = false;
       break
-    case PracticeMode.FollowWrite:
+    case WordPracticeType.FollowWrite:
       settingStore.dictation = false;
       settingStore.translate = true;
       break
-    case PracticeMode.Identify:
+    case WordPracticeType.Identify:
       settingStore.dictation = false;
       settingStore.translate = false;
       break
@@ -196,11 +195,11 @@ function wordLoop() {
   // return data.index++
   let d = Math.floor(data.index / 6) - 1
   if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
-    if (practiceMode.value === PracticeMode.FollowWrite) {
-      practiceMode.value = PracticeMode.Spell
+    if (settingStore.wordPracticeType === WordPracticeType.FollowWrite) {
+      settingStore.wordPracticeType = WordPracticeType.Spell
       data.index -= 6
     } else {
-      practiceMode.value = PracticeMode.FollowWrite
+      settingStore.wordPracticeType = WordPracticeType.FollowWrite
       data.index++
     }
   } else {
@@ -216,13 +215,12 @@ function goNextStep(originList, mode, msg) {
     if (toastInstance) toastInstance.close()
     toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 5000})
     data.words = list
-    practiceMode.value = mode
+    settingStore.wordPracticeType = mode
     data.index = 0
     statStore.step++
   } else {
     console.log(msg + ':无单词略过')
-    statStore.step++
-    statStore.step++
+    statStore.step += 3
     next()
   }
 }
@@ -233,7 +231,7 @@ async function next(isTyping: boolean = true) {
   if (isTyping) {
     statStore.inputWordNumber++
   }
-  if (settingStore.wordPracticeMode === 1) {
+  if (settingStore.wordPracticeMode === WordPracticeMode.Free) {
     if (data.index === data.words.length - 1) {
       console.log('自由模式，全完学完了')
       showStatDialog = true
@@ -244,7 +242,7 @@ async function next(isTyping: boolean = true) {
   } else {
     if (data.index === data.words.length - 1) {
       if (statStore.step === 0 || isTypingWrongWord.value) {
-        if (practiceMode.value !== PracticeMode.Spell) {
+        if (settingStore.wordPracticeType !== WordPracticeType.Spell) {
           let i = data.index
           i--
           let d = Math.floor(i / 6) - 1
@@ -259,14 +257,14 @@ async function next(isTyping: boolean = true) {
           }
           data.index = i + 1
           emitter.emit(EventKey.resetWord)
-          practiceMode.value = PracticeMode.Spell
+          settingStore.wordPracticeType = WordPracticeType.Spell
           return
         }
       }
       data.wrongWords = data.wrongWords.filter(v => (!data.excludeWords.includes(v.word)))
       if (data.wrongWords.length) {
         isTypingWrongWord.value = true
-        practiceMode.value = PracticeMode.FollowWrite
+        settingStore.wordPracticeType = WordPracticeType.FollowWrite
         console.log('当前学完了，但还有错词')
         data.words = shuffle(cloneDeep(data.wrongWords))
         data.index = 0
@@ -285,42 +283,42 @@ async function next(isTyping: boolean = true) {
 
         //开始默写之前
         if (statStore.step === 7) {
-          return goNextStep(shuffle(taskWords.write), PracticeMode.Dictation, '开始默写之前')
+          return goNextStep(shuffle(taskWords.write), WordPracticeType.Dictation, '开始默写之前')
         }
 
         //开始听写之前
         if (statStore.step === 6) {
-          return goNextStep(shuffle(taskWords.write), PracticeMode.Listen, '开始听写之前')
+          return goNextStep(shuffle(taskWords.write), WordPracticeType.Listen, '开始听写之前')
         }
 
         //开始复写之前
         if (statStore.step === 5) {
-          return goNextStep(taskWords.write, PracticeMode.Identify, '开始复写之前')
+          return goNextStep(taskWords.write, WordPracticeType.Identify, '开始复写之前')
         }
 
         //开始默写上次
         if (statStore.step === 4) {
-          return goNextStep(shuffle(taskWords.review), PracticeMode.Dictation, '开始默写上次')
+          return goNextStep(shuffle(taskWords.review), WordPracticeType.Dictation, '开始默写上次')
         }
 
         //开始听写上次
         if (statStore.step === 3) {
-          return goNextStep(shuffle(taskWords.review), PracticeMode.Listen, '开始听写上次')
+          return goNextStep(shuffle(taskWords.review), WordPracticeType.Listen, '开始听写上次')
         }
 
         //开始复写昨日
         if (statStore.step === 2) {
-          return goNextStep(taskWords.review, PracticeMode.Identify, '开始复写昨日')
+          return goNextStep(taskWords.review, WordPracticeType.Identify, '开始复写昨日')
         }
 
         //开始默写新词
         if (statStore.step === 1) {
-          return goNextStep(shuffle(taskWords.new), PracticeMode.Dictation, '开始默写新词')
+          return goNextStep(shuffle(taskWords.new), WordPracticeType.Dictation, '开始默写新词')
         }
 
         //开始听写新词
         if (statStore.step === 0) {
-          return goNextStep(shuffle(taskWords.new), PracticeMode.Listen, '开始听写新词')
+          return goNextStep(shuffle(taskWords.new), WordPracticeType.Listen, '开始听写新词')
         }
       }
     } else {
@@ -390,7 +388,7 @@ useOnKeyboardEventListener(onKeyDown, onKeyUp)
 
 function repeat() {
   console.log('重学一遍')
-  if (settingStore.wordPracticeMode === 0) settingStore.dictation = false
+  if (settingStore.wordPracticeMode === WordPracticeMode.System) settingStore.dictation = false
   if (store.sdict.lastLearnIndex === 0 && store.sdict.complete) {
     //如果是刚刚完成，那么学习进度要从length减回去，因为lastLearnIndex为0了，同时改complete为false
     store.sdict.lastLearnIndex = store.sdict.length - statStore.newWordNumber
@@ -422,7 +420,7 @@ function skip(e: KeyboardEvent) {
 }
 
 function show(e: KeyboardEvent) {
-  if (![PracticeMode.FollowWrite].includes(practiceMode.value)) onTypeWrong()
+  if (![WordPracticeType.FollowWrite].includes(settingStore.wordPracticeType)) onTypeWrong()
   typingRef.showWord()
 }
 
@@ -466,7 +464,7 @@ function togglePanel() {
 }
 
 function continueStudy() {
-  if (settingStore.wordPracticeMode === 0) settingStore.dictation = false
+  if (settingStore.wordPracticeMode === WordPracticeMode.System) settingStore.dictation = false
   //这里判断是否显示结算弹框，如果显示了结算弹框的话，就不用加进度了
   if (!showStatDialog) {
     console.log('没学完，强行跳过')

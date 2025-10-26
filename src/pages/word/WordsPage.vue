@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import BaseIcon from "@/components/BaseIcon.vue";
 import { _getAccomplishDate, _getDictDataByUrl, resourceWrap, useNav } from "@/utils";
 import BasePage from "@/components/BasePage.vue";
-import { DictResource } from "@/types/types.ts";
+import {DictResource, WordPracticeMode} from "@/types/types.ts";
 import { watch } from "vue";
 import { getCurrentStudyWord } from "@/hooks/dict.ts";
 import { useRuntimeStore } from "@/stores/runtime.ts";
@@ -221,7 +221,7 @@ const {
             <div class="text-4xl font-bold">{{ currentStudy.new.length }}</div>
             <div class="text">新词</div>
           </div>
-          <template v-if="settingStore.wordPracticeMode === 0">
+          <template v-if="settingStore.wordPracticeMode === WordPracticeMode.System">
             <div class="flex-1 flex flex-col items-center">
               <div class="text-4xl font-bold">{{ currentStudy.review.length }}</div>
               <div class="text">复习上次</div>

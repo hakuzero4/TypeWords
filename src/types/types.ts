@@ -215,7 +215,14 @@ export enum PracticeArticleWordType {
   Word
 }
 
-export enum PracticeMode {
+//练习模式
+export enum WordPracticeMode {
+  System = 0,
+  Free = 1
+}
+
+//练习类型
+export enum WordPracticeType {
   FollowWrite,//跟写
   Spell,
   Identify,
