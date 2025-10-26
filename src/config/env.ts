@@ -43,7 +43,7 @@ export const SoundFileOptions = [
 ]
 export const APP_VERSION = {
   key: 'type-words-app-version',
-  version: 1
+  version: 2
 }
 export const SAVE_DICT_KEY = {
   key: 'typing-word-dict',
@@ -51,7 +51,7 @@ export const SAVE_DICT_KEY = {
 }
 export const SAVE_SETTING_KEY = {
   key: 'typing-word-setting',
-  version: 15
+  version: 16
 }
 export const EXPORT_DATA_KEY = {
   key: 'typing-word-export',

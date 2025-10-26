@@ -1,4 +1,4 @@
-import { Article, TaskWords, Word } from "@/types/types.ts";
+import {Article, TaskWords, Word, WordPracticeMode} from "@/types/types.ts";
 import { useBaseStore } from "@/stores/base.ts";
 import { useSettingStore } from "@/stores/setting.ts";
 import { getDefaultWord } from "@/types/func.ts";
@@ -144,7 +144,7 @@ export function getCurrentStudyWord(): TaskWords {
     }
 
     //如果是自由模式，那么统统设置到new字段里面去
-    if (settingStore.wordPracticeMode === 1) {
+    if (settingStore.wordPracticeMode === WordPracticeMode.Free) {
       data.new = data.new.length ? data.new : data.review
       data.review = []
       return data
