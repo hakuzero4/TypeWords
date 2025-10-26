@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import {WordPracticeType, ShortcutKey, Word, WordPracticeMode} from "@/types/types.ts";
+import { WordPracticeType, ShortcutKey, Word, WordPracticeMode } from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import {useSettingStore} from "@/stores/setting.ts";
-import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio} from "@/hooks/sound.ts";
-import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
-import {inject, onMounted, onUnmounted, Ref, watch} from "vue";
+import { useSettingStore } from "@/stores/setting.ts";
+import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio } from "@/hooks/sound.ts";
+import { emitter, EventKey, useEvents } from "@/utils/eventBus.ts";
+import { inject, onMounted, onUnmounted, Ref, watch } from "vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
-import {usePracticeStore} from "@/stores/practice.ts";
-import {getDefaultWord} from "@/types/func.ts";
-import {_nextTick, last, sleep} from "@/utils";
+import { usePracticeStore } from "@/stores/practice.ts";
+import { getDefaultWord } from "@/types/func.ts";
+import { _nextTick, last, sleep } from "@/utils";
 import BaseButton from "@/components/BaseButton.vue";
 import Space from "@/pages/article/components/Space.vue";
 import Toast from "@/components/base/toast/Toast.ts";
@@ -25,7 +25,7 @@ const props = withDefaults(defineProps<IProps>(), {
 const emit = defineEmits<{
   complete: [],
   wrong: [],
-  know:[],
+  know: [],
 }>()
 
 let input = $ref('')
@@ -121,12 +121,18 @@ const right = $computed(() => {
   }
 })
 
+let showNotice = false
+
 function know(e) {
   if (settingStore.wordPracticeType === WordPracticeType.Identify) {
     if (!showWordResult) {
       inputLock = showWordResult = true
       input = props.word.word
       emit('know')
+      if (!showNotice) {
+        Toast.info('若误选“我认识”，可按删除键重新选择！', {duration: 5000})
+        showNotice = true
+      }
       return
     }
   }
@@ -407,7 +413,8 @@ useEvents([
           <span class="input" v-if="input">{{ input }}</span>
           <span class="wrong" v-if="wrong">{{ wrong }}</span>
           <template v-if="settingStore.wordPracticeMode === WordPracticeMode.System">
-            <template v-if="[WordPracticeType.Spell,WordPracticeType.Listen,WordPracticeType.Dictation].includes(settingStore.wordPracticeType)">
+            <template
+                v-if="[WordPracticeType.Spell,WordPracticeType.Listen,WordPracticeType.Dictation].includes(settingStore.wordPracticeType)">
             <span class="letter" v-if="!showFullWord">{{
                 displayWord.split('').map(() => (WordPracticeType.Dictation === settingStore.wordPracticeType ? '&nbsp;' : '_')).join('')
               }}</span>
@@ -424,7 +431,8 @@ useEvents([
         </template>
       </div>
 
-      <div class="mt-4 flex gap-4" v-if="settingStore.wordPracticeType === WordPracticeType.Identify && !showWordResult">
+      <div class="mt-4 flex gap-4"
+           v-if="settingStore.wordPracticeType === WordPracticeType.Identify && !showWordResult">
         <BaseButton
             :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.KnowWord]})`"
             size="large" @click="know">我认识
@@ -477,7 +485,10 @@ useEvents([
               <div class="flex items-center gap-4" v-for="item in word.phrases">
                 <SentenceHightLightWord class="en" :text="item.c" :word="word.word"
                                         :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
-                <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">{{ item.cn }}</div>
+                <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">{{
+                    item.cn
+                  }}
+                </div>
               </div>
             </div>
           </div>

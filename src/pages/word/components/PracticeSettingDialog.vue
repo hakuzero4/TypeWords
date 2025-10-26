@@ -66,7 +66,7 @@ watch(() => model.value, (n) => {
         <div class="flex gap-4 text-center h-30 w-85">
           <div class="mode-item" :class="temPracticeMode == 0 && 'active'" @click=" temPracticeMode = 0">
             <div class="title text-align-center">智能模式</div>
-            <div class="desc mt-2">自动规划学习、复习、默写单词</div>
+            <div class="desc mt-2">自动规划学习、复习、听写、默写</div>
           </div>
           <div class="mode-item" :class="temPracticeMode == 1 && 'active'" @click=" temPracticeMode = 1">
             <div class="title">自由模式</div>

@@ -682,8 +682,61 @@ function importOldData() {
           <div class="item p-2">
             <div class="mb-2">
               <div>
-                <span>2025/9/14：</span>
-                <span>完善文章编辑、导入、导出等功能</span>
+                <div>更新日期：2025/10/26</div>
+                <div>更新内容：进一步完善单词练习，解决复习数量太多的问题</div>
+              </div>
+              <div class="text-base mt-1">
+                <ol>
+                  <li>
+                    <div class="title"><b>智能模式优化</b></div>
+                    <div class="desc">练习时新增四种练习模式：学习、复习、听写、默写。</div>
+                  </li>
+                  <li>
+                    <div class="title"><b>学习模式</b></div>
+                    <div class="desc">
+                      <ul>
+                        <li>仅在练习新词时出现。</li>
+                        <li>采用「跟写 / 拼写」方式进行学习。</li>
+                        <li>每 7 个单词会 <b>强制进行听写</b>，解决原来“一次练太多，听写时已忘记”的问题。</li>
+                      </ul>
+                    </div>
+                  </li>
+                  <li>
+                    <div class="title"><b>复习模式（新增）</b></div>
+                    <div class="desc">
+                      <ul>
+                        <li>仅在复习已学单词时出现。</li>
+                        <li>不再强制拼写，提供「我认识」与「不认识」选项。</li>
+                        <li>选择「我认识」后，该单词在后续听写或默写中将不再出现，<b>显著减少复习数量</b>。</li>
+                      </ul>
+                    </div>
+                  </li>
+                  <li>
+                    <div class="title"><b>听写模式</b></div>
+                    <div class="desc">原有逻辑保持不变。</div>
+                  </li>
+                  <li>
+                    <div class="title"><b>默写模式（新增）</b></div>
+                    <div class="desc">
+                      <ul>
+                        <li>仅显示释义，不自动发音，不显示单词长度。</li>
+                        <li>适合强化拼写记忆的场景。</li>
+                      </ul>
+                    </div>
+                  </li>
+                </ol>
+                <b>说明：</b>
+                <div>本次更新重点解决了“复习单词数量过多、效率偏低”的问题。</div>
+                <div>通过引入「复习」与「默写」两种模式，使复习流程更加灵活、高效。</div>
+              </div>
+            </div>
+            <div class="line"></div>
+          </div>
+          <div class="item p-2">
+            <div class="mb-2">
+              <div>
+                <div>更新日期：2025/9/14</div>
+                <div>更新内容：完善文章编辑、导入、导出等功能</div>
               </div>
               <div class="text-base mt-1">
                 <div>1、文章的音频管理功能，目前已可添加音频、设置句子与音频的对应位置</div>
