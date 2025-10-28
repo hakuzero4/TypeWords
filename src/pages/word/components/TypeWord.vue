@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import { WordPracticeType, ShortcutKey, Word, WordPracticeMode } from "@/types/types.ts";
+import {WordPracticeType, ShortcutKey, Word, WordPracticeMode} from "@/types/types.ts";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import { useSettingStore } from "@/stores/setting.ts";
-import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio } from "@/hooks/sound.ts";
-import { emitter, EventKey, useEvents } from "@/utils/eventBus.ts";
-import { inject, onMounted, onUnmounted, Ref, watch } from "vue";
+import {useSettingStore} from "@/stores/setting.ts";
+import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio, usePlayWordAudio} from "@/hooks/sound.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
+import {inject, onMounted, onUnmounted, Ref, watch} from "vue";
 import SentenceHightLightWord from "@/pages/word/components/SentenceHightLightWord.vue";
-import { usePracticeStore } from "@/stores/practice.ts";
-import { getDefaultWord } from "@/types/func.ts";
-import { _nextTick, last, sleep } from "@/utils";
+import {usePracticeStore} from "@/stores/practice.ts";
+import {getDefaultWord} from "@/types/func.ts";
+import {_nextTick, last, sleep} from "@/utils";
 import BaseButton from "@/components/BaseButton.vue";
 import Space from "@/pages/article/components/Space.vue";
 import Toast from "@/components/base/toast/Toast.ts";
@@ -384,8 +384,8 @@ useEvents([
              v-if="settingStore.soundType === 'uk' && word.phonetic1">[{{ word.phonetic1 }}]
         </div>
         <VolumeIcon
-            :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
-            ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
+          :title="`发音(${settingStore.shortcutKeyMap[ShortcutKey.PlayWordPronunciation]})`"
+          ref="volumeIconRef" :simple="true" :cb="() => playWordAudio(word.word)"/>
       </div>
 
       <div class="word my-1"
@@ -396,13 +396,13 @@ useEvents([
       >
         <div v-if="settingStore.wordPracticeType === WordPracticeType.Dictation">
           <div class="letter text-align-center w-full inline-block"
-               v-opacity="showWordResult || showFullWord">
+               v-opacity="!settingStore.dictation || showWordResult || showFullWord">
             {{ word.word }}
           </div>
           <div
-              class="mt-2 w-120 dictation"
-              :style="{minHeight: settingStore.fontSize.wordForeignFontSize +'px'}"
-              :class="showWordResult ? (right ? 'right' : 'wrong') : ''">
+            class="mt-2 w-120 dictation"
+            :style="{minHeight: settingStore.fontSize.wordForeignFontSize +'px'}"
+            :class="showWordResult ? (right ? 'right' : 'wrong') : ''">
             <template v-for="i in input">
               <span class="l" v-if="i !== ' '">{{ i }}</span>
               <Space class="l" v-else :is-wrong="showWordResult ? (!right) : false" :is-wait="!showWordResult"/>
@@ -412,49 +412,35 @@ useEvents([
         <template v-else>
           <span class="input" v-if="input">{{ input }}</span>
           <span class="wrong" v-if="wrong">{{ wrong }}</span>
-          <template v-if="settingStore.wordPracticeMode === WordPracticeMode.System">
-            <template
-                v-if="[WordPracticeType.Spell,WordPracticeType.Listen,WordPracticeType.Dictation].includes(settingStore.wordPracticeType)">
-            <span class="letter" v-if="!showFullWord">{{
-                displayWord.split('').map(() => (WordPracticeType.Dictation === settingStore.wordPracticeType ? '&nbsp;' : '_')).join('')
-              }}</span>
-              <span class="letter" v-else>{{ displayWord }}</span>
-            </template>
-            <span class="letter" v-else>{{ displayWord }}</span>
-          </template>
-          <template v-else>
-          <span class="letter" v-if="(settingStore.dictation && !showFullWord)">
-            {{ displayWord.split('').map(() => '_').join('') }}
+          <span class="letter" v-if="settingStore.dictation && !showFullWord">
+                  {{ displayWord.split('').map((v) => (v === ' ' ? '&nbsp;' : '_')).join('') }}
           </span>
-            <span class="letter" v-else>{{ displayWord }}</span>
-          </template>
+          <span class="letter" v-else>{{ displayWord }}</span>
         </template>
       </div>
 
       <div class="mt-4 flex gap-4"
            v-if="settingStore.wordPracticeType === WordPracticeType.Identify && !showWordResult">
         <BaseButton
-            :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.KnowWord]})`"
-            size="large" @click="know">我认识
+          :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.KnowWord]})`"
+          size="large" @click="know">我认识
         </BaseButton>
         <BaseButton
-            :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.UnknownWord]})`"
-            size="large" @click="unknown">不认识
+          :keyboard="`快捷键(${settingStore.shortcutKeyMap[ShortcutKey.UnknownWord]})`"
+          size="large" @click="unknown">不认识
         </BaseButton>
       </div>
 
       <div class="translate  flex flex-col gap-2 my-3"
-           v-opacity="settingStore.translate || ![WordPracticeType.Listen,WordPracticeType.Identify].includes(settingStore.wordPracticeType) || showWordResult || showFullWord"
+           v-opacity="settingStore.translate || showWordResult || showFullWord"
            :style="{
       fontSize: settingStore.fontSize.wordTranslateFontSize +'px',
     }"
       >
-        <div class="flex" v-for="(v,i) in word.trans">
+        <div class="flex" v-for="v in word.trans">
           <div class="shrink-0" :class="v.pos ? 'w-12 en-article-family' : '-ml-3'">{{ v.pos }}</div>
-          <span
-              v-if="([WordPracticeType.Listen,WordPracticeType.Identify].includes(settingStore.wordPracticeType) || settingStore.dictation) && !(showWordResult || showFullWord)"
-              v-html="hideWordInTranslation(v.cn, word.word)"></span>
-          <span v-else>{{ v.cn }}</span>
+          <span v-if="!settingStore.dictation || showWordResult || showFullWord">{{ v.cn }}</span>
+          <span v-else v-html="hideWordInTranslation(v.cn, word.word)"></span>
         </div>
       </div>
     </div>
@@ -466,35 +452,31 @@ useEvents([
           <div class="sentence" v-for="item in word.sentences">
             <SentenceHightLightWord class="text-xl" :text="item.c" :word="word.word"
                                     :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
-            <div class="text-base anim"
-                 v-opacity="settingStore.translate || showFullWord || showWordResult">
+            <div class="text-base anim" v-opacity="settingStore.translate || showFullWord || showWordResult">
               {{ item.cn }}
             </div>
           </div>
         </div>
-        <div class="line-white my-2 mb-5 anim"
-             v-opacity="settingStore.translate || showFullWord || showWordResult"></div>
+        <div class="line-white my-2 mb-5"></div>
       </template>
 
-      <div class="anim"
-           v-opacity="settingStore.translate || showFullWord || showWordResult">
-        <template v-if="word?.phrases?.length">
-          <div class="flex">
-            <div class="label">短语</div>
-            <div class="flex flex-col">
-              <div class="flex items-center gap-4" v-for="item in word.phrases">
-                <SentenceHightLightWord class="en" :text="item.c" :word="word.word"
-                                        :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
-                <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">{{
-                    item.cn
-                  }}
-                </div>
+      <template v-if="word?.phrases?.length">
+        <div class="flex">
+          <div class="label">短语</div>
+          <div class="flex flex-col">
+            <div class="flex items-center gap-4" v-for="item in word.phrases">
+              <SentenceHightLightWord class="en" :text="item.c" :word="word.word"
+                                      :dictation="!(!settingStore.dictation || showFullWord || showWordResult)"/>
+              <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">
+                {{ item.cn }}
               </div>
             </div>
           </div>
-          <div class="line-white mt-3 mb-2"></div>
-        </template>
+        </div>
+        <div class="line-white mt-3 mb-2"></div>
+      </template>
 
+      <template v-if="(settingStore.translate || !settingStore.dictation)">
         <template v-if="word?.synos?.length">
           <div class="flex">
             <div class='label'>同近义词</div>
@@ -502,11 +484,13 @@ useEvents([
               <div class="flex" v-for="item in word.synos">
                 <div class="pos line-height-1.4rem!">{{ item.pos }}</div>
                 <div>
-                  <div class="cn">{{ item.cn }}</div>
-                  <div>
-                    <span class="en" v-for="(i,j) in item.ws">{{ i }} {{
-                        j !== item.ws.length - 1 ? ' / ' : ''
-                      }} </span>
+                  <div class="cn anim" v-opacity="settingStore.translate || showFullWord || showWordResult">
+                    {{ item.cn }}
+                  </div>
+                  <div class="anim" v-opacity="!settingStore.dictation || showFullWord || showWordResult">
+                    <span class="en" v-for="(i,j) in item.ws">
+                      {{ i }} {{ j !== item.ws.length - 1 ? ' / ' : '' }}
+                    </span>
                   </div>
                 </div>
               </div>
@@ -514,7 +498,10 @@ useEvents([
           </div>
           <div class="line-white my-2"></div>
         </template>
+      </template>
 
+      <div class="anim"
+           v-opacity="(settingStore.translate && !settingStore.dictation) || showFullWord || showWordResult">
         <template v-if="word?.etymology?.length">
           <div class="flex">
             <div class="label">词源</div>
