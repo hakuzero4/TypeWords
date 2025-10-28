@@ -176,6 +176,9 @@ watch(() => settingStore.wordPracticeType, (n) => {
   switch (n) {
     case WordPracticeType.Spell:
     case WordPracticeType.Dictation:
+      settingStore.dictation = true;
+      settingStore.translate = true;
+      break
     case WordPracticeType.Listen:
       settingStore.dictation = true;
       settingStore.translate = false;
