@@ -4,7 +4,7 @@ import { useRouter } from "vue-router";
 import BaseIcon from "@/components/BaseIcon.vue";
 import { _getAccomplishDate, _getDictDataByUrl, resourceWrap, useNav } from "@/utils";
 import BasePage from "@/components/BasePage.vue";
-import { DictResource } from "@/types/types.ts";
+import {DictResource, WordPracticeMode} from "@/types/types.ts";
 import { watch } from "vue";
 import { getCurrentStudyWord } from "@/hooks/dict.ts";
 import { useRuntimeStore } from "@/stores/runtime.ts";
@@ -22,6 +22,7 @@ import CollectNotice from "@/components/CollectNotice.vue";
 import { useFetch } from "@vueuse/core";
 import { CAN_REQUEST, DICT_LIST, PracticeSaveWordKey } from "@/config/env.ts";
 import { myDictList } from "@/apis";
+import PracticeWordListDialog from "@/pages/word/components/PracticeWordListDialog.vue";
 
 
 const store = useBaseStore()
@@ -93,6 +94,7 @@ function startPractice() {
 
 let showPracticeSettingDialog = $ref(false)
 let showChangeLastPracticeIndexDialog = $ref(false)
+let showPracticeWordListDialog = $ref(false)
 
 async function goDictDetail(val: DictResource) {
   runtimeStore.editDict = getDefaultDict(val)
@@ -182,7 +184,6 @@ const {
             <BaseIcon title="切换词典"
                       class="ml-4"
                       @click="router.push('/dict-list')"
-
             >
               <IconFluentArrowSort20Regular v-if="store.sdict.name"/>
               <IconFluentAdd20Filled v-else/>
@@ -211,21 +212,24 @@ const {
       </div>
 
       <div class="w-3/10 flex flex-col justify-evenly">
-        <div class="center text-xl">{{ isSaveData ? '上次学习任务' : '今日任务' }}</div>
+        <div class="center gap-2">
+          <span class="text-xl">{{ isSaveData ? '上次学习任务' : '今日任务' }}</span>
+          <span class="color-blue cursor-pointer" @click="showPracticeWordListDialog = true">词表</span>
+        </div>
         <div class="flex">
           <div class="flex-1 flex flex-col items-center">
             <div class="text-4xl font-bold">{{ currentStudy.new.length }}</div>
             <div class="text">新词</div>
           </div>
-          <template v-if="settingStore.wordPracticeMode === 0">
+          <template v-if="settingStore.wordPracticeMode === WordPracticeMode.System">
             <div class="flex-1 flex flex-col items-center">
               <div class="text-4xl font-bold">{{ currentStudy.review.length }}</div>
-              <div class="text">复习</div>
+              <div class="text">复习上次</div>
             </div>
             <div class="flex-1 flex flex-col items-center">
               <div class="text-4xl font-bold">{{ currentStudy.write.length }}
               </div>
-              <div class="text">默写</div>
+              <div class="text">复习之前</div>
             </div>
           </template>
         </div>
@@ -234,8 +238,8 @@ const {
       <div class="flex flex-col items-end justify-around ">
         <div class="flex gap-1 items-center">
           每日目标
-          <div style="color:#ac6ed1;" @click="check(()=>showPracticeSettingDialog = true)"
-               class="bg-third px-2 h-10 flex center text-2xl rounded cursor-pointer">
+          <div style="color:#ac6ed1;"
+               class="bg-third px-2 h-10 flex center text-2xl rounded">
             {{ store.sdict.id ? store.sdict.perDayStudyNumber : 0 }}
           </div>
           个单词
@@ -306,6 +310,11 @@ const {
   <ChangeLastPracticeIndexDialog
       v-model="showChangeLastPracticeIndexDialog"
       @ok="saveLastPracticeIndex"
+  />
+
+  <PracticeWordListDialog
+      :data="currentStudy"
+      v-model="showPracticeWordListDialog"
   />
 
   <CollectNotice/>

@@ -126,7 +126,6 @@ const vFocus = {
   display: inline-flex;
   box-sizing: border-box;
   width: 100%;
-  background: var(--color-input-bg);
   border: 1px solid var(--color-input-border);
   border-radius: 4px;
   overflow: hidden;
@@ -173,6 +172,7 @@ const vFocus = {
     transition: all .3s;
     height: 1.5rem;
     color: var(--color-input-color);
+    background: transparent;
   }
 }
 </style>

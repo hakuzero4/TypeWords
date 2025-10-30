@@ -89,8 +89,8 @@ useEvents([
 ])
 
 function options(emitType: string) {
-  close()
   emitter.emit(EventKey[emitType])
+  close()
 }
 
 </script>
@@ -111,11 +111,11 @@ function options(emitType: string) {
             <div class="text-4xl font-bold">{{ statStore.newWordNumber }}</div>
           </div>
           <div class="flex-1 flex flex-col items-center">
-            <div class="text-sm color-gray">复习数</div>
+            <div class="text-sm color-gray">复习上次</div>
             <div class="text-4xl font-bold">{{ statStore.reviewWordNumber }}</div>
           </div>
           <div class="flex-1 flex flex-col items-center">
-            <div class="text-sm color-gray">默写数</div>
+            <div class="text-sm color-gray">复习之前</div>
             <div class="text-4xl font-bold">{{ statStore.writeWordNumber }}</div>
           </div>
         </div>

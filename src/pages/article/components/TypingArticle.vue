@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { inject, onMounted, onUnmounted, watch } from "vue"
-import { Article, ArticleWord, PracticeArticleWordType, Sentence, Word } from "@/types/types.ts";
+import {Article, ArticleWord, PracticeArticleWordType, Sentence, ShortcutKey, Word} from "@/types/types.ts";
 import { useBaseStore } from "@/stores/base.ts";
 import { useSettingStore } from "@/stores/setting.ts";
 import { usePlayBeep, usePlayCorrect, usePlayKeyboardAudio } from "@/hooks/sound.ts";
-import { emitter, EventKey } from "@/utils/eventBus.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
 import { _dateFormat, _nextTick, msToHourMinute, msToMinute, total } from "@/utils";
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 import ContextMenu from '@imengyu/vue3-context-menu'
@@ -521,6 +521,11 @@ onUnmounted(() => {
   emitter.off(EventKey.resetWord,)
   emitter.off(EventKey.onTyping, onTyping)
 })
+
+useEvents([
+  [ShortcutKey.KnowWord, onTyping],
+  [ShortcutKey.UnknownWord, onTyping],
+])
 
 defineExpose({showSentence, play, del, hideSentence, nextSentence, init})
 

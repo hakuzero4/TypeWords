@@ -5,7 +5,7 @@ import VolumeIcon from "@/components/icon/VolumeIcon.vue";
 import {usePlayWordAudio} from "@/hooks/sound.ts";
 import Tooltip from "@/components/base/Tooltip.vue";
 
-const props = withDefaults(defineProps<{
+withDefaults(defineProps<{
   item: Word,
   showTranslate?: boolean
   showWord?: boolean
@@ -37,8 +37,8 @@ const playWordAudio = usePlayWordAudio()
         <div class="item-sub-title flex flex-col gap-2" v-if="item.trans.length && showTranslate">
           <div v-for="v in item.trans">
             <Tooltip
-                v-if="v.cn.length > 30 && showTransPop"
-                :title="v.pos + '  ' + v.cn"
+              v-if="v.cn.length > 30 && showTransPop"
+              :title="v.pos + '  ' + v.cn"
             >
               <span>{{ v.pos + '  ' + v.cn.slice(0, 30) + '...' }}</span>
             </Tooltip>

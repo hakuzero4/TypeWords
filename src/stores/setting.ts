@@ -1,6 +1,6 @@
 import { defineStore } from "pinia"
 import { checkAndUpgradeSaveSetting, cloneDeep } from "@/utils";
-import { DefaultShortcutKeyMap } from "@/types/types.ts";
+import {DefaultShortcutKeyMap, WordPracticeMode, WordPracticeType} from "@/types/types.ts";
 import { get } from "idb-keyval";
 import { CAN_REQUEST, SAVE_SETTING_KEY } from "@/config/env.ts";
 import { getSetting } from "@/apis";
@@ -48,7 +48,8 @@ export interface SettingState {
   load: boolean
   conflictNotice: boolean // 其他脚本/插件冲突提示
   ignoreSimpleWord: boolean // 忽略简单词
-  wordPracticeMode: number // 单词练习模式，0：智能模式，1：自由模式
+  wordPracticeMode: WordPracticeMode // 单词练习模式
+  wordPracticeType: WordPracticeType // 单词练习类型
   disableShowPracticeSettingDialog: boolean // 不默认显示练习设置弹框
   autoNextWord: boolean //自动切换下一个单词
   inputWrongClear: boolean //单词输入错误，清空已输入内容
@@ -97,7 +98,8 @@ export const getDefaultSettingState = (): SettingState => ({
   load: false,
   conflictNotice: true,
   ignoreSimpleWord: false,
-  wordPracticeMode: 0,
+  wordPracticeMode: WordPracticeMode.System,
+  wordPracticeType: WordPracticeType.FollowWrite,
   disableShowPracticeSettingDialog: false,
   autoNextWord: true,
   inputWrongClear: false,

@@ -20,6 +20,7 @@ let list = defineModel('list')
 const props = withDefaults(defineProps<{
   loading?: boolean
   showToolbar?: boolean
+  showPagination?: boolean
   exportLoading?: boolean
   importLoading?: boolean
   del?: Function
@@ -28,6 +29,7 @@ const props = withDefaults(defineProps<{
 }>(), {
   loading: true,
   showToolbar: true,
+  showPagination: true,
   exportLoading: false,
   importLoading: false,
   del: () => void 0,
@@ -71,6 +73,7 @@ let currentList = $computed(() => {
   if (searchKey) {
     return list.value.filter(v => v.word.includes(searchKey))
   }
+  if (!props.showPagination) return list.value
   return list.value.slice((pageNo - 1) * pageSize, (pageNo - 1) * pageSize + pageSize)
 })
 
@@ -171,134 +174,136 @@ defineRender(
                             <span>{selectIds.length} / {list.value.length}</span>
                           </div>
 
-                          <div class="flex gap-2 relative">
-                            {
-                              selectIds.length ?
-                                  <PopConfirm title="确认删除所有选中数据？"
-                                              onConfirm={handleBatchDel}
-                                  >
-                                    <BaseIcon
-                                        class="del"
-                                        title="删除">
-                                      <DeleteIcon/>
-                                    </BaseIcon>
-                                  </PopConfirm>
-                                  : null
-                            }
-                            <BaseIcon
-                                onClick={() => showImportDialog = true}
-                                title="导入">
-                              <IconSystemUiconsImport/>
-                            </BaseIcon>
-                            <BaseIcon
-                                onClick={() => emit('exportData')}
-                                title="导出">
-                              {props.exportLoading ? <IconEosIconsLoading/> : <IconPhExportLight/>}
-                            </BaseIcon>
-                            <BaseIcon
-                                onClick={props.add}
-                                title="添加单词">
-                              <IconFluentAdd20Regular/>
-                            </BaseIcon>
-                            <BaseIcon
-                                disabled={!currentList.length}
-                                title="改变顺序"
-                                onClick={() => showSortDialog = !showSortDialog}
-                            >
-                              <IconFluentArrowSort20Regular/>
-                            </BaseIcon>
-                            <BaseIcon
-                                disabled={!currentList.length}
-                                onClick={() => showSearchInput = !showSearchInput}
-                                title="搜索">
-                              <IconFluentSearch20Regular/>
-                            </BaseIcon>
-                            <MiniDialog
-                                modelValue={showSortDialog}
-                                onUpdate:modelValue={e => showSortDialog = e}
-                                style="width: 8rem;"
-                            >
-                              <div class="mini-row-title">
-                                列表顺序设置
-                              </div>
-                              <div class="mini-row">
-                                <BaseButton size="small" onClick={() => sort(Sort.reverse)}>翻转
-                                </BaseButton>
-                                <BaseButton size="small" onClick={() => sort(Sort.random)}>随机</BaseButton>
-                              </div>
-                            </MiniDialog>
-                          </div>
-                        </div>
-                    )
-                  }
-                </div>
-            }
-            {
-              props.loading ?
-                  <div class="h-full w-full center text-4xl">
-                    <IconEosIconsLoading color="gray"/>
+                  <div class="flex gap-2 relative">
+                    {
+                      selectIds.length ?
+                        <PopConfirm title="确认删除所有选中数据？"
+                                    onConfirm={handleBatchDel}
+                        >
+                          <BaseIcon
+                            class="del"
+                            title="删除">
+                            <DeleteIcon/>
+                          </BaseIcon>
+                        </PopConfirm>
+                        : null
+                    }
+                    <BaseIcon
+                      onClick={() => showImportDialog = true}
+                      title="导入">
+                      <IconSystemUiconsImport/>
+                    </BaseIcon>
+                    <BaseIcon
+                      onClick={() => emit('exportData')}
+                      title="导出">
+                      {props.exportLoading ? <IconEosIconsLoading/> : <IconPhExportLight/>}
+                    </BaseIcon>
+                    <BaseIcon
+                      onClick={props.add}
+                      title="添加单词">
+                      <IconFluentAdd20Regular/>
+                    </BaseIcon>
+                    <BaseIcon
+                      disabled={!currentList.length}
+                      title="改变顺序"
+                      onClick={() => showSortDialog = !showSortDialog}
+                    >
+                      <IconFluentArrowSort20Regular/>
+                    </BaseIcon>
+                    <BaseIcon
+                      disabled={!currentList.length}
+                      onClick={() => showSearchInput = !showSearchInput}
+                      title="搜索">
+                      <IconFluentSearch20Regular/>
+                    </BaseIcon>
+                    <MiniDialog
+                      modelValue={showSortDialog}
+                      onUpdate:modelValue={e => showSortDialog = e}
+                      style="width: 8rem;"
+                    >
+                      <div class="mini-row-title">
+                        列表顺序设置
+                      </div>
+                      <div class="mini-row">
+                        <BaseButton size="small" onClick={() => sort(Sort.reverse)}>翻转
+                        </BaseButton>
+                        <BaseButton size="small" onClick={() => sort(Sort.random)}>随机</BaseButton>
+                      </div>
+                    </MiniDialog>
                   </div>
-                  : currentList.length ? (
-                      <>
-                        <div class="flex-1 overflow-auto"
-                             ref={e => listRef = e}>
-                          {currentList.map((item, index) => {
-                            return (
-                                <div class="list-item-wrapper"
-                                     key={item.word}
-                                >
-                                  {s.default({checkbox: d, item, index: (pageSize * (pageNo - 1)) + index + 1})}
-                                </div>
-                            )
-                          })}
-                        </div>
-                        <div class="flex justify-end">
-                          <Pagination
-                              currentPage={pageNo}
-                              onUpdate:current-page={handlePageNo}
-                              pageSize={pageSize}
-                              onUpdate:page-size={(e) => pageSize = e}
-                              pageSizes={[20, 50, 100, 200]}
-                              layout="prev, pager, next"
-                              total={list.value.length}/>
-                        </div>
-                      </>
-                  ) : <Empty/>
+                </div>
+              )
             }
-
-            <Dialog modelValue={showImportDialog}
-                    onUpdate:modelValue={closeImportDialog}
-                    title="导入教程"
-            >
-              <div className="w-100 p-4 pt-0">
-                <div>请按照模板的格式来填写数据</div>
-                <div class="color-red">单词项为必填，其他项可不填</div>
-                <div>翻译：一行一个翻译，前面词性，后面内容（如n.取消）；多个翻译请换行</div>
-                <div>例句：一行原文，一行译文；多个请换<span class="color-red">两</span>行</div>
-                <div>短语：一行原文，一行译文；多个请换<span class="color-red">两</span>行</div>
-                <div>同义词、同根词、词源：请前往官方字典，然后编辑其中某个单词，参考其格式</div>
-                <div class="mt-6">
-                  模板下载地址：<a href="https://2study.top/libs/单词导入模板.xlsx">单词导入模板</a>
-                </div>
-                <div class="mt-4">
-                  <BaseButton
-                      onClick={() => {
-                        let d: HTMLDivElement = document.querySelector('#upload-trigger')
-                        d.click()
-                      }}
-                      loading={props.importLoading}>导入</BaseButton>
-                  <input
-                      id="upload-trigger"
-                      type="file"
-                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
-                      onChange={e => emit('importData', e)}
-                      class="w-0 h-0 opacity-0"/>
-                </div>
-              </div>
-            </Dialog>
           </div>
-      )
-    }
+        }
+        {
+          props.loading ?
+            <div class="h-full w-full center text-4xl">
+              <IconEosIconsLoading color="gray"/>
+            </div>
+            : currentList.length ? (
+              <>
+                <div class="flex-1 overflow-auto"
+                     ref={e => listRef = e}>
+                  {currentList.map((item, index) => {
+                    return (
+                      <div class="list-item-wrapper"
+                           key={item.word}
+                      >
+                        {s.default({checkbox: d, item, index: (pageSize * (pageNo - 1)) + index + 1})}
+                      </div>
+                    )
+                  })}
+                </div>
+                {
+                  props.showPagination && <div class="flex justify-end">
+                    <Pagination
+                      currentPage={pageNo}
+                      onUpdate:current-page={handlePageNo}
+                      pageSize={pageSize}
+                      onUpdate:page-size={(e) => pageSize = e}
+                      pageSizes={[20, 50, 100, 200]}
+                      layout="prev, pager, next"
+                      total={list.value.length}/>
+                  </div>
+                }
+              </>
+            ) : <Empty/>
+        }
+
+        <Dialog modelValue={showImportDialog}
+                onUpdate:modelValue={closeImportDialog}
+                title="导入教程"
+        >
+          <div className="w-100 p-4 pt-0">
+            <div>请按照模板的格式来填写数据</div>
+            <div class="color-red">单词项为必填，其他项可不填</div>
+            <div>翻译：一行一个翻译，前面词性，后面内容（如n.取消）；多个翻译请换行</div>
+            <div>例句：一行原文，一行译文；多个请换<span class="color-red">两</span>行</div>
+            <div>短语：一行原文，一行译文；多个请换<span class="color-red">两</span>行</div>
+            <div>同义词、同根词、词源：请前往官方字典，然后编辑其中某个单词，参考其格式</div>
+            <div class="mt-6">
+              模板下载地址：<a href="https://2study.top/libs/单词导入模板.xlsx">单词导入模板</a>
+            </div>
+            <div class="mt-4">
+              <BaseButton
+                onClick={() => {
+                  let d: HTMLDivElement = document.querySelector('#upload-trigger')
+                  d.click()
+                }}
+                loading={props.importLoading}>导入</BaseButton>
+              <input
+                id="upload-trigger"
+                type="file"
+                accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                onChange={e => emit('importData', e)}
+                class="w-0 h-0 opacity-0"/>
+            </div>
+          </div>
+        </Dialog>
+      </div>
+    )
+  }
 )
 </script>
 <style scoped lang="scss">

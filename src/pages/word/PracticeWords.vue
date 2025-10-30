@@ -1,17 +1,17 @@
 <script setup lang="ts">
 
-import { onMounted, provide, watch } from "vue";
+import {onMounted, provide, ref, watch} from "vue";
 
 import Statistics from "@/pages/word/Statistics.vue";
-import { emitter, EventKey, useEvents } from "@/utils/eventBus.ts";
-import { useSettingStore } from "@/stores/setting.ts";
-import { useRuntimeStore } from "@/stores/runtime.ts";
-import { Dict, PracticeData, ShortcutKey, TaskWords, Word } from "@/types/types.ts";
-import { useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener } from "@/hooks/event.ts";
+import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
+import {useSettingStore} from "@/stores/setting.ts";
+import {useRuntimeStore} from "@/stores/runtime.ts";
+import {Dict, PracticeData, WordPracticeType, ShortcutKey, TaskWords, Word, WordPracticeMode} from "@/types/types.ts";
+import {useDisableEventListener, useOnKeyboardEventListener, useStartKeyboardEventListener} from "@/hooks/event.ts";
 import useTheme from "@/hooks/theme.ts";
-import { getCurrentStudyWord, useWordOptions } from "@/hooks/dict.ts";
-import { _getDictDataByUrl, cloneDeep, resourceWrap, shuffle } from "@/utils";
-import { useRoute, useRouter } from "vue-router";
+import {getCurrentStudyWord, useWordOptions} from "@/hooks/dict.ts";
+import {_getDictDataByUrl, cloneDeep, resourceWrap, shuffle} from "@/utils";
+import {useRoute, useRouter} from "vue-router";
 import Footer from "@/pages/word/components/Footer.vue";
 import Panel from "@/components/Panel.vue";
 import BaseIcon from "@/components/BaseIcon.vue";
@@ -19,14 +19,15 @@ import Tooltip from "@/components/base/Tooltip.vue";
 import WordList from "@/components/list/WordList.vue";
 import TypeWord from "@/pages/word/components/TypeWord.vue";
 import Empty from "@/components/Empty.vue";
-import { useBaseStore } from "@/stores/base.ts";
-import { usePracticeStore } from "@/stores/practice.ts";
+import {useBaseStore} from "@/stores/base.ts";
+import {usePracticeStore} from "@/stores/practice.ts";
 import Toast from '@/components/base/toast/Toast.ts'
-import { getDefaultDict, getDefaultWord } from "@/types/func.ts";
+import {getDefaultDict, getDefaultWord} from "@/types/func.ts";
 import ConflictNotice from "@/components/ConflictNotice.vue";
 import PracticeLayout from "@/components/PracticeLayout.vue";
 
-import { DICT_LIST, PracticeSaveWordKey } from "@/config/env.ts";
+import {DICT_LIST, PracticeSaveWordKey} from "@/config/env.ts";
+import {ToastInstance} from "@/components/base/toast/type.ts";
 
 const {
   isWordCollect,
@@ -48,14 +49,21 @@ let loading = $ref(false)
 let taskWords = $ref<TaskWords>({
   new: [],
   review: [],
-  write: []
+  write: [],
 })
 
 let data = $ref<PracticeData>({
   index: 0,
   words: [],
   wrongWords: [],
+  excludeWords: [],
 })
+let isTypingWrongWord = ref(false)
+
+let practiceMode = ref(WordPracticeType.FollowWrite)
+provide('isTypingWrongWord', isTypingWrongWord)
+provide('practiceData', data)
+provide('practiceMode', practiceMode)
 
 async function loadDict() {
   // console.log('load好了开始加载')
@@ -89,7 +97,6 @@ watch(() => store.load, (n) => {
   if (n && loading) loadDict()
 }, {immediate: true})
 
-
 onMounted(() => {
   //如果是从单词学习主页过来的，就直接使用；否则等待加载
   if (runtimeStore.routeData) {
@@ -120,26 +127,27 @@ function initData(initVal: TaskWords, init: boolean = false) {
     taskWords = initVal
     if (taskWords.new.length === 0) {
       if (taskWords.review.length) {
-        settingStore.dictation = false
-        statStore.step = 2
+        settingStore.wordPracticeType = WordPracticeType.Identify
+        statStore.step = 3
         data.words = taskWords.review
       } else {
         if (taskWords.write.length) {
-          settingStore.dictation = true
+          settingStore.wordPracticeType = WordPracticeType.Identify
           data.words = taskWords.write
-          statStore.step = 4
+          statStore.step = 6
         } else {
           Toast.warning('没有可学习的单词！')
           router.push('/word')
         }
       }
     } else {
-      settingStore.dictation = false
+      settingStore.wordPracticeType = WordPracticeType.FollowWrite
       data.words = taskWords.new
       statStore.step = 0
     }
     data.index = 0
     data.wrongWords = []
+    data.excludeWords = []
     allWrongWords.clear()
     statStore.startDate = Date.now()
     statStore.inputWordNumber = 0
@@ -149,12 +157,11 @@ function initData(initVal: TaskWords, init: boolean = false) {
     statStore.reviewWordNumber = taskWords.review.length
     statStore.writeWordNumber = taskWords.write.length
     statStore.index = 0
+    isTypingWrongWord.value = false
   }
 }
 
-provide('practiceData', data)
-
-const word = $computed(() => {
+const word = $computed<Word>(() => {
   return data.words[data.index] ?? getDefaultWord()
 })
 const prevWord: Word = $computed(() => {
@@ -164,92 +171,187 @@ const nextWord: Word = $computed(() => {
   return data.words?.[data.index + 1] ?? undefined
 })
 
-function next(isTyping: boolean = true) {
-  // showStatDialog = true
-  // return
-  if (data.index === data.words.length - 1) {
-    if (data.wrongWords.length) {
-      console.log('当前学完了，但还有错词')
-      data.words = shuffle(cloneDeep(data.wrongWords))
-      data.index = 0
-      data.wrongWords = []
+watch(() => settingStore.wordPracticeType, (n) => {
+  if (settingStore.wordPracticeMode === WordPracticeMode.Free) return
+  switch (n) {
+    case WordPracticeType.Spell:
+    case WordPracticeType.Dictation:
+      settingStore.dictation = true;
+      settingStore.translate = true;
+      break
+    case WordPracticeType.Listen:
+      settingStore.dictation = true;
+      settingStore.translate = false;
+      break
+    case WordPracticeType.FollowWrite:
+      settingStore.dictation = false;
+      settingStore.translate = true;
+      break
+    case WordPracticeType.Identify:
+      settingStore.dictation = false;
+      settingStore.translate = false;
+      break
+  }
+}, {immediate: true})
+
+function wordLoop() {
+  // return data.index++
+  let d = Math.floor(data.index / 6) - 1
+  if (data.index > 0 && data.index % 6 === (d < 0 ? 0 : d)) {
+    if (settingStore.wordPracticeType === WordPracticeType.FollowWrite) {
+      settingStore.wordPracticeType = WordPracticeType.Spell
+      data.index -= 6
     } else {
-      console.log('当前学完了，没错词', statStore.total, statStore.step, data.index)
-      if (isTyping) statStore.inputWordNumber++
-
-      //学完了
-      if (statStore.step === 4) {
-        statStore.spend = Date.now() - statStore.startDate
-        console.log('全完学完了')
-        showStatDialog = true
-        localStorage.removeItem(PracticeSaveWordKey.key)
-        return;
-        // emit('complete', {})
-      }
-
-      //开始默认所有单词
-      if (statStore.step === 3) {
-        statStore.step++
-        if (taskWords.write.length) {
-          console.log('开始默认所有单词')
-          settingStore.dictation = true
-          data.words = shuffle(taskWords.write)
-          data.index = 0
-        } else {
-          console.log('开始默认所有单词-无单词略过')
-          return next()
-        }
-      }
-
-      //开始默写昨日
-      if (statStore.step === 2) {
-        statStore.step++
-        if (taskWords.review.length) {
-          console.log('开始默写昨日')
-          settingStore.dictation = true
-          data.words = shuffle(taskWords.review)
-          data.index = 0
-        } else {
-          console.log('开始默写昨日-无单词略过')
-          return next()
-        }
-      }
-
-      //开始复习昨日
-      if (statStore.step === 1) {
-        statStore.step++
-        if (taskWords.review.length) {
-          console.log('开始复习昨日')
-          settingStore.dictation = false
-          data.words = shuffle(taskWords.review)
-          data.index = 0
-        } else {
-          console.log('开始复习昨日-无单词略过')
-          return next()
-        }
-      }
-
-      //开始默写新词
-      if (statStore.step === 0) {
-        if (settingStore.wordPracticeMode === 1) {
-          console.log('自由模式，全完学完了')
-          showStatDialog = true
-          localStorage.removeItem(PracticeSaveWordKey.key)
-          return
-        }
-        statStore.step++
-        console.log('开始默写新词')
-        settingStore.dictation = true
-        data.words = shuffle(taskWords.new)
-        data.index = 0
-      }
+      settingStore.wordPracticeType = WordPracticeType.FollowWrite
+      data.index++
     }
   } else {
     data.index++
-    isTyping && statStore.inputWordNumber++
-    // console.log('这个词完了')
+  }
+}
+
+function goNextStep(originList, mode, msg) {
+  //每次都判断，因为每次都可能新增已掌握的单词
+  let list = originList.filter(v => (!data.excludeWords.includes(v.word)))
+  console.log(msg)
+  if (list.length) {
+    if (toastInstance) toastInstance.close()
+    toastInstance = Toast.info('输入完成后按空格键切换下一个', {duration: 5000})
+    data.words = list
+    settingStore.wordPracticeType = mode
+    data.index = 0
+    statStore.step++
+  } else {
+    console.log(msg + ':无单词略过')
+    statStore.step += 3
+    next()
+  }
+}
+
+let toastInstance: ToastInstance = null
+
+async function next(isTyping: boolean = true) {
+  if (isTyping) {
+    statStore.inputWordNumber++
+  }
+  if (settingStore.wordPracticeMode === WordPracticeMode.Free) {
+    if (data.index === data.words.length - 1) {
+      data.wrongWords = data.wrongWords.filter(v => (!data.excludeWords.includes(v.word)))
+      if (data.wrongWords.length) {
+        isTypingWrongWord.value = true
+        settingStore.wordPracticeType = WordPracticeType.FollowWrite
+        console.log('当前学完了，但还有错词')
+        data.words = shuffle(cloneDeep(data.wrongWords))
+        data.index = 0
+        data.wrongWords = []
+      }else {
+        console.log('自由模式，全完学完了')
+        showStatDialog = true
+        localStorage.removeItem(PracticeSaveWordKey.key)
+      }
+    } else {
+      data.index++
+    }
+  } else {
+    if (data.index === data.words.length - 1) {
+      if (statStore.step === 0 || isTypingWrongWord.value) {
+        if (settingStore.wordPracticeType !== WordPracticeType.Spell) {
+          let i = data.index
+          i--
+          let d = Math.floor(i / 6) - 1
+          while (i % 6 !== (d < 0 ? 0 : d)) {
+            i--
+            d = Math.floor(i / 6) - 1
+          }
+          console.log('i', i)
+          if (i <= 0) i = -1
+          if (i + 1 == data.index) {
+            data.index = 0
+          }
+          data.index = i + 1
+          emitter.emit(EventKey.resetWord)
+          settingStore.wordPracticeType = WordPracticeType.Spell
+          return
+        }
+      }
+      data.wrongWords = data.wrongWords.filter(v => (!data.excludeWords.includes(v.word)))
+      if (data.wrongWords.length) {
+        isTypingWrongWord.value = true
+        settingStore.wordPracticeType = WordPracticeType.FollowWrite
+        console.log('当前学完了，但还有错词')
+        data.words = shuffle(cloneDeep(data.wrongWords))
+        data.index = 0
+        data.wrongWords = []
+      } else {
+        isTypingWrongWord.value = false
+        console.log('当前学完了，没错词', statStore.total, statStore.step, data.index)
+        //学完了，这里第 7 步如果无单词，加 3 就是 9 了
+        if (statStore.step >= 8) {
+          statStore.spend = Date.now() - statStore.startDate
+          console.log('全完学完了')
+          showStatDialog = true
+          localStorage.removeItem(PracticeSaveWordKey.key)
+          return;
+        }
+
+        //开始默写之前
+        if (statStore.step === 7) {
+          return goNextStep(shuffle(taskWords.write), WordPracticeType.Dictation, '开始默写之前')
+        }
+
+        //开始听写之前
+        if (statStore.step === 6) {
+          return goNextStep(shuffle(taskWords.write), WordPracticeType.Listen, '开始听写之前')
+        }
+
+        //开始复写之前
+        if (statStore.step === 5) {
+          return goNextStep(taskWords.write, WordPracticeType.Identify, '开始复写之前')
+        }
+
+        //开始默写上次
+        if (statStore.step === 4) {
+          return goNextStep(shuffle(taskWords.review), WordPracticeType.Dictation, '开始默写上次')
+        }
+
+        //开始听写上次
+        if (statStore.step === 3) {
+          return goNextStep(shuffle(taskWords.review), WordPracticeType.Listen, '开始听写上次')
+        }
+
+        //开始复写昨日
+        if (statStore.step === 2) {
+          return goNextStep(taskWords.review, WordPracticeType.Identify, '开始复写昨日')
+        }
+
+        //开始默写新词
+        if (statStore.step === 1) {
+          return goNextStep(shuffle(taskWords.new), WordPracticeType.Dictation, '开始默写新词')
+        }
+
+        //开始听写新词
+        if (statStore.step === 0) {
+          return goNextStep(shuffle(taskWords.new), WordPracticeType.Listen, '开始听写新词')
+        }
+      }
+    } else {
+      if (statStore.step === 0) {
+        wordLoop()
+      } else {
+        if (isTypingWrongWord.value) wordLoop()
+        else data.index++
+      }
+    }
   }
   savePracticeData()
+}
+
+function onWordKnow() {
+  //标记模式时，用户认识的单词加入到排除里面，后续不再复习
+  let rIndex = data.excludeWords.findIndex(v => v === word.word)
+  if (rIndex < 0) {
+    data.excludeWords.push(word.word)
+  }
 }
 
 function onTypeWrong() {
@@ -299,7 +401,7 @@ useOnKeyboardEventListener(onKeyDown, onKeyUp)
 
 function repeat() {
   console.log('重学一遍')
-  if (settingStore.wordPracticeMode === 0) settingStore.dictation = false
+  if (settingStore.wordPracticeMode === WordPracticeMode.System) settingStore.dictation = false
   if (store.sdict.lastLearnIndex === 0 && store.sdict.complete) {
     //如果是刚刚完成，那么学习进度要从length减回去，因为lastLearnIndex为0了，同时改complete为false
     store.sdict.lastLearnIndex = store.sdict.length - statStore.newWordNumber
@@ -331,6 +433,7 @@ function skip(e: KeyboardEvent) {
 }
 
 function show(e: KeyboardEvent) {
+  if (![WordPracticeType.FollowWrite].includes(settingStore.wordPracticeType)) onTypeWrong()
   typingRef.showWord()
 }
 
@@ -344,12 +447,16 @@ function play() {
 
 function toggleWordSimpleWrapper() {
   if (!isWordSimple(word)) {
-    toggleWordSimple(word)
     //延迟一下，不知道为什么不延迟会导致当前条目不自动定位到列表中间
     setTimeout(() => next(false))
-  } else {
-    toggleWordSimple(word)
   }
+  let rIndex = data.excludeWords.findIndex(v => v === word.word)
+  if (rIndex > -1) {
+    data.excludeWords.splice(rIndex, 1)
+  } else {
+    data.excludeWords.push(word.word)
+  }
+  toggleWordSimple(word)
 }
 
 function toggleTranslate() {
@@ -370,7 +477,7 @@ function togglePanel() {
 }
 
 function continueStudy() {
-  if (settingStore.wordPracticeMode === 0) settingStore.dictation = false
+  if (settingStore.wordPracticeMode === WordPracticeMode.System) settingStore.dictation = false
   //这里判断是否显示结算弹框，如果显示了结算弹框的话，就不用加进度了
   if (!showStatDialog) {
     console.log('没学完，强行跳过')
@@ -388,6 +495,7 @@ function randomWrite() {
   data.index = 0
   settingStore.dictation = true
 }
+
 function nextRandomWrite() {
   console.log('继续随机默写')
   initData(getCurrentStudyWord())
@@ -456,6 +564,7 @@ useEvents([
             :word="word"
             @wrong="onTypeWrong"
             @complete="next"
+            @know="onWordKnow"
         />
       </div>
     </template>

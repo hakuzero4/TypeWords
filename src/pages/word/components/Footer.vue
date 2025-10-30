@@ -1,9 +1,9 @@
 <script setup lang="ts">
 
-import { inject, watch } from "vue"
+import { inject, Ref, watch } from "vue"
 import { usePracticeStore } from "@/stores/practice.ts";
 import { useSettingStore } from "@/stores/setting.ts";
-import { ShortcutKey, PracticeData } from "@/types/types.ts";
+import { PracticeData, WordPracticeType, ShortcutKey } from "@/types/types.ts";
 import BaseIcon from "@/components/BaseIcon.vue";
 import Tooltip from "@/components/base/Tooltip.vue";
 import Progress from '@/components/base/Progress.vue'
@@ -25,28 +25,42 @@ const emit = defineEmits<{
 }>()
 
 let practiceData = inject<PracticeData>('practiceData')
+let isTypingWrongWord = inject<Ref<boolean>>('isTypingWrongWord')
 
 function format(val: number, suffix: string = '', check: number = -1) {
   return val === check ? '-' : (val + suffix)
 }
 
 const status = $computed(() => {
-  let str = '正在'
+  if (isTypingWrongWord.value) return '复习错词'
+  let str = ''
   switch (statisticsStore.step) {
     case 0:
       str += `学习新词`
       break
     case 1:
-      str += `默写新词`
+      str += `听写新词`
       break
     case 2:
-      str += `复习上次`
+      str += `默写新词`
       break
     case 3:
-      str += `默写上次`
+      str += `复习上次学习`
       break
     case 4:
-      str += '默写之前'
+      str += '听写上次学习'
+      break
+    case 5:
+      str += '默写上次学习'
+      break
+    case 6:
+      str += '复习之前学习'
+      break
+    case 7:
+      str += '听写之前学习'
+      break
+    case 8:
+      str += '默写之前学习'
       break
   }
   return str
@@ -77,7 +91,7 @@ const progress = $computed(() => {
       <div class="flex justify-between items-center">
         <div class="stat">
           <div class="row">
-            <div class="num">{{ `${practiceData.index}/${practiceData.words.length}` }}</div>
+            <div class="num">{{ `${practiceData.index + 1}/${practiceData.words.length}` }}</div>
             <div class="line"></div>
             <div class="name">{{ status }}</div>
           </div>
