@@ -126,6 +126,7 @@ export default defineConfig(() => {
           port: 3000,
           open: false,
           host: '0.0.0.0',
+          allowedHosts: ['typeword.home.com'],
           proxy: {
             '/baidu': 'https://api.fanyi.baidu.com/api/trans/vip/translate'
           }
