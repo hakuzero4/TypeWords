@@ -682,6 +682,34 @@ useEvents([
   width: var(--toolbar-width);
 }
 
+// 移动端适配
+@media (max-width: 768px) {
+  .practice-word {
+    width: 100%;
+    
+    .absolute.z-1.top-4 {
+      z-index: 100; // 提高层级，确保不被遮挡
+      
+      .center.gap-2.cursor-pointer {
+        min-height: 44px;
+        min-width: 44px;
+        padding: 0.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        .word {
+          pointer-events: none; // 文字不拦截点击
+        }
+        
+        .arrow {
+          pointer-events: none; // 箭头图标不拦截点击
+        }
+      }
+    }
+  }
+}
+
 .word-panel-wrapper {
   position: absolute;
   left: var(--panel-margin-left);

@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import {useSettingStore} from "@/stores/setting.ts";
-import router from "@/router.ts";
+import { useRouter } from 'vue-router'
 
 const settingStore = useSettingStore()
+const router = useRouter()
 
 function goHome() {
   router.push('/')

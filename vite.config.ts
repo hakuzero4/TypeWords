@@ -64,9 +64,9 @@ export default defineConfig(() => {
               enforce: 'pre',
               transformIndexHtml(html) {
                 const scripts = `
-<script src="https://2study.top/libs/vue.global.prod.min.js" crossorigin="anonymous"></script>
-<script src="https://2study.top/libs/vue-router.global.prod.min.js" crossorigin="anonymous"></script>
-<script src="https://2study.top/libs/axios.min.js" crossorigin="anonymous"></script>
+<script src="./libs/vue.global.prod.min.js" crossorigin="anonymous"></script>
+<script src="./libs/vue-router.global.prod.min.js" crossorigin="anonymous"></script>
+<script src="./libs/axios.min.js" crossorigin="anonymous"></script>
 `
                 return html.replace('<head>', `<head>${scripts}`)
               },
@@ -107,7 +107,7 @@ export default defineConfig(() => {
           LATEST_COMMIT_HASH: JSON.stringify(latestCommitHash + (process.env.NODE_ENV === 'production' ? '' : ' (dev)')),
         },
         //默认是'',导致只能在一级域名下使用。
-        base: '/',
+        base: './',
         resolve: {
           alias: {
             "@": pathResolve("src"),

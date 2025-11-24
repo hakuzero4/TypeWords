@@ -179,11 +179,11 @@ function next() {
 
 <template>
   <BasePage>
-    <div class="card mb-0 h-[95vh] flex flex-col" v-if="showBookDetail">
-      <div class="flex justify-between items-center relative">
-        <BackIcon class="z-2"/>
-        <div class="absolute text-2xl text-align-center w-full">{{ runtimeStore.editDict.name }}</div>
-        <div class="flex">
+    <div class="card mb-0 dict-detail-card flex flex-col" v-if="showBookDetail">
+      <div class="dict-header flex justify-between items-center relative">
+        <BackIcon class="dict-back z-2"/>
+        <div class="dict-title absolute text-2xl text-align-center w-full">{{ runtimeStore.editDict.name }}</div>
+        <div class="dict-actions flex gap-2">
           <BaseButton v-if="runtimeStore.editDict.custom && runtimeStore.editDict.url" type="info" @click="reset">
             恢复默认
           </BaseButton>
@@ -254,10 +254,10 @@ function next() {
       </div>
     </div>
 
-    <div class="card mb-0 h-[95vh]" v-else>
-      <div class="flex justify-between items-center relative">
-        <BackIcon class="z-2" @click="isAdd ? $router.back():(isEdit = false)"/>
-        <div class="absolute text-2xl text-align-center w-full">{{ runtimeStore.editDict.id ? '修改' : '创建' }}书籍
+    <div class="card mb-0 dict-detail-card" v-else>
+      <div class="dict-header flex justify-between items-center relative">
+        <BackIcon class="dict-back z-2" @click="isAdd ? $router.back():(isEdit = false)"/>
+        <div class="dict-title absolute text-2xl text-align-center w-full">{{ runtimeStore.editDict.id ? '修改' : '创建' }}书籍
         </div>
       </div>
       <div class="center">
@@ -273,5 +273,62 @@ function next() {
 </template>
 
 <style scoped lang="scss">
+.dict-detail-card {
+  min-height: calc(100vh - 3rem);
+}
+
+.dict-header {
+  gap: 0.5rem;
+}
+
+.dict-actions {
+  flex-wrap: wrap;
+}
+
+@media (max-width: 768px) {
+  .dict-detail-card {
+    min-height: calc(100vh - 2rem);
+  }
+
+  .dict-header {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .dict-header .dict-back {
+    align-self: flex-start;
+  }
+
+  .dict-header .dict-title {
+    position: static !important;
+    width: 100%;
+  }
+
+  .dict-header .dict-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 0.75rem;
+
+    .base-button {
+      flex: 1 0 45%;
+      min-width: 8rem;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dict-header .dict-actions {
+    flex-direction: column;
+
+    .base-button {
+      width: 100%;
+      min-width: auto;
+    }
+  }
+}
 
 </style>

@@ -31,7 +31,7 @@ function parseSentence(sentence: string) {
     // 1) 货币 + 数字（$1,000.50 或 ¥200 或 €100.5）
     let m = rest.match(/^[\$¥€£]\d{1,3}(?:,\d{3})*(?:\.\d+)?%?/)
     if (m) {
-      tokens.push({ word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Number })
+      tokens.push({word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Number})
       i += m[0].length
       continue
     }
@@ -39,7 +39,7 @@ function parseSentence(sentence: string) {
     // 2) 数字/小数/百分比（100% 3.14 1,000.00）
     m = rest.match(/^\d{1,3}(?:,\d{3})*(?:\.\d+)?%?/)
     if (m) {
-      tokens.push({ word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Number })
+      tokens.push({word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Number})
       i += m[0].length
       continue
     }
@@ -47,7 +47,7 @@ function parseSentence(sentence: string) {
     // 3) 带点缩写或多段缩写（U.S. U.S.A. e.g. i.e. Ph.D.）
     m = rest.match(/^[A-Za-z]+(?:\.[A-Za-z]+)+\.?/)
     if (m) {
-      tokens.push({ word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Word })
+      tokens.push({word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Word})
       i += m[0].length
       continue
     }
@@ -55,7 +55,7 @@ function parseSentence(sentence: string) {
     // 4) 单词（包含撇号/连字符，如 it's, o'clock, we'll, mother-in-law）
     m = rest.match(/^[A-Za-z0-9]+(?:[\'\-][A-Za-z0-9]+)*/)
     if (m) {
-      tokens.push({ word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Word })
+      tokens.push({word: m[0], start: i, end: i + m[0].length, type: PracticeArticleWordType.Word})
       i += m[0].length
       continue
     }
@@ -63,13 +63,13 @@ function parseSentence(sentence: string) {
     // 5) 其它可视符号（标点）——单字符处理（连续标点会被循环拆为单字符）
     //    包括：.,!?;:"'()-[]{}<>/\\@#%^&*~`等非单词非空白字符
     if (/[^\w\s]/.test(ch)) {
-      tokens.push({ word: ch, start: i, end: i + 1, type: PracticeArticleWordType.Symbol })
+      tokens.push({word: ch, start: i, end: i + 1, type: PracticeArticleWordType.Symbol})
       i += 1
       continue
     }
 
     // 6) 回退方案：把当前字符当作一个 token（防止意外丢失）
-    tokens.push({ word: ch, start: i, end: i + 1, type: PracticeArticleWordType.Symbol })
+    tokens.push({word: ch, start: i, end: i + 1, type: PracticeArticleWordType.Symbol})
     i += 1
   }
 
@@ -78,7 +78,7 @@ function parseSentence(sentence: string) {
     const next = tokens[idx + 1]
     const between = next ? sentence.slice(t.end, next.start) : sentence.slice(t.end)
     const nextSpace = /\s/.test(between)
-    return getDefaultArticleWord({ word: t.word, nextSpace, type: t.type })
+    return getDefaultArticleWord({word: t.word, nextSpace, type: t.type})
   })
 
   return result
@@ -125,7 +125,8 @@ export function genArticleSectionData(article: Article): number {
     try {
       let s = translateList[i]
       sList = s.split("\n")
-    } catch (e) {}
+    } catch (e) {
+    }
 
     for (let j = 0; j < v.length; j++) {
       let sentence = v[j]
@@ -294,7 +295,7 @@ export function splitCNArticle2(text: string): string {
     //     text = `上星期我去看戏。我的座位很好，戏很有意思，但我却无法欣赏。一青年男子与一青年女子坐在我的身后，大声地说着话。我非常生气，因为我听不见演员在说什么。我回过头去怒视着那一男一女，他们却毫不理会。最后，我忍不住了，又一次回过头去，生气地说：“我一个字也听不见了！”
     // “不关你的事，”那男的毫不客气地说，“这是私人间的谈话！”`
   }
-  const segmenterJa = new Intl.Segmenter("zh-CN", { granularity: "sentence" })
+  const segmenterJa = new Intl.Segmenter("zh-CN", {granularity: "sentence"})
 
   let sectionTextList = text.replaceAll("\n\n", "`^`").replaceAll("\n", "").split("`^`")
 
@@ -321,10 +322,6 @@ export function splitCNArticle2(text: string): string {
     .join("\n")
     .trim()
   return s
-}
-
-export function getTranslateText(article: Article) {
-  return article.textTranslate.split("\n\n").filter((v) => v)
 }
 
 export function usePlaySentenceAudio() {

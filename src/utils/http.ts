@@ -84,7 +84,7 @@ axiosInstance.interceptors.response.use(
   },
 )
 
-type AxiosResponse<T> = { code: number, data: T, success: boolean, msg: string }
+export type AxiosResponse<T> = { code: number, data: T, success: boolean, msg: string }
 
 async function request<T>(url, data = {}, params = {}, method): Promise<AxiosResponse<T>> {
   return axiosInstance({

@@ -149,7 +149,6 @@ function unknown(e) {
 }
 
 async function onTyping(e: KeyboardEvent) {
-  debugger
   let word = props.word.word
   // 输入完成会锁死不能再输入
   if (inputLock) {
@@ -589,6 +588,7 @@ useEvents([
   word-break: break-word;
   position: relative;
   color: var(--color-font-2);
+  padding-bottom: 8rem;
 
   .phonetic, .translate {
     font-size: 1.2rem;
@@ -651,6 +651,126 @@ useEvents([
     font-family: var(--en-article-family);
     @apply text-lg w-12;
   }
+}
+    
+// 隐藏光标
+.cursor {
+  display: none !important;
+}
 
+// 移动端适配
+@media (max-width: 768px) {
+  .typing-word {
+    padding: 0 0.5rem 12rem;
+    
+    .word {
+      font-size: 2rem !important;
+      letter-spacing: 0.1rem;
+      margin: 0.5rem 0;
+    }
+    
+    .phonetic, .translate {
+      font-size: 1rem;
+    }
+    
+    .label {
+      width: 4rem;
+      font-size: 0.9rem;
+    }
+    
+    .cn {
+      font-size: 0.9rem;
+    }
+    
+    .en {
+      font-size: 1rem;
+    }
+    
+    .pos {
+      font-size: 0.9rem;
+      width: 3rem;
+    }
+    
+    // 移动端按钮组调整
+    .flex.gap-4 {
+      flex-direction: column;
+      width: 100%;
+      gap: 0.5rem;
+      position: relative;
+      z-index: 10; // 确保按钮不被其他元素遮挡
+      
+      .base-button {
+        width: 100%;
+        min-height: 48px;
+        padding: 0.8rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        cursor: pointer;
+      }
+    }
+    
+    // 确保短语和例句区域保持默认层级
+    .phrase-section,
+    .sentence {
+      position: relative;
+      z-index: auto;
+    }
+    
+    // 移动端例句和短语调整
+    .sentence,
+    .phrase {
+      font-size: 0.9rem;
+      line-height: 1.4;
+      margin-bottom: 0.5rem;
+      pointer-events: auto; // 允许点击但不调起输入法
+    }
+    
+    // 移动端短语调整
+    .flex.items-center.gap-4 {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.2rem;
+    }
+  }
+}
+
+// 超小屏幕适配
+@media (max-width: 480px) {
+  .typing-word {
+    padding: 0 0.3rem 12rem;
+    
+    .word {
+      font-size: 1.5rem !important;
+      letter-spacing: 0.05rem;
+      margin: 0.3rem 0;
+    }
+    
+    .phonetic, .translate {
+      font-size: 0.9rem;
+    }
+    
+    .label {
+      width: 3rem;
+      font-size: 0.8rem;
+    }
+    
+    .cn {
+      font-size: 0.8rem;
+    }
+    
+    .en {
+      font-size: 0.9rem;
+    }
+    
+    .pos {
+      font-size: 0.8rem;
+      width: 2.5rem;
+    }
+    
+    .sentence {
+      font-size: 0.8rem;
+      line-height: 1.3;
+    }
+  }
 }
 </style>

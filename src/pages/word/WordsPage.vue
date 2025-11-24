@@ -201,8 +201,8 @@ const {
 
 <template>
   <BasePage>
-    <div class="card flex gap-8">
-      <div class="flex-1 flex flex-col justify-between">
+    <div class="card flex flex-col md:flex-row gap-8">
+      <div class="flex-1 w-full flex flex-col justify-between">
         <div class="flex gap-3">
           <div class="p-1 center rounded-full bg-white">
             <IconFluentBookNumber20Filled class="text-xl color-link"/>
@@ -262,7 +262,7 @@ const {
         </div>
       </div>
 
-      <div class="flex-1" :class="!store.sdict.id && 'opacity-30 cursor-not-allowed'">
+      <div class="flex-1 w-full mt-4 md:mt-0" :class="!store.sdict.id && 'opacity-30 cursor-not-allowed'">
         <div class="flex justify-between">
           <div class="flex items-center gap-2">
             <div class="p-2 center rounded-full bg-white ">

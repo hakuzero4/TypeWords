@@ -1,14 +1,14 @@
 <script setup lang="ts">
-import {nextTick, ref, watch} from "vue";
-import {useSettingStore} from "@/stores/setting.ts";
-import {getAudioFileUrl, usePlayAudio} from "@/hooks/sound.ts";
-import {getShortcutKey, useEventListener} from "@/hooks/event.ts";
-import {checkAndUpgradeSaveDict, checkAndUpgradeSaveSetting, cloneDeep, loadJsLib, shakeCommonDict} from "@/utils";
-import {DefaultShortcutKeyMap, ShortcutKey, WordPracticeMode} from "@/types/types.ts";
+import { nextTick, ref, watch } from "vue";
+import { useSettingStore } from "@/stores/setting.ts";
+import { getAudioFileUrl, usePlayAudio } from "@/hooks/sound.ts";
+import { getShortcutKey, useEventListener } from "@/hooks/event.ts";
+import { checkAndUpgradeSaveDict, checkAndUpgradeSaveSetting, cloneDeep, loadJsLib, shakeCommonDict } from "@/utils";
+import { DefaultShortcutKeyMap, ShortcutKey, WordPracticeMode } from "@/types/types.ts";
 import BaseButton from "@/components/BaseButton.vue";
 import VolumeIcon from "@/components/icon/VolumeIcon.vue";
-import {useBaseStore} from "@/stores/base.ts";
-import {saveAs} from "file-saver";
+import { useBaseStore } from "@/stores/base.ts";
+import { saveAs } from "file-saver";
 import {
   APP_NAME, APP_VERSION, EMAIL,
   EXPORT_DATA_KEY, GITHUB,
@@ -20,7 +20,7 @@ import {
 import dayjs from "dayjs";
 import BasePage from "@/components/BasePage.vue";
 import Toast from '@/components/base/toast/Toast.ts'
-import {Option, Select} from "@/components/base/select";
+import { Option, Select } from "@/components/base/select";
 import Switch from "@/components/base/Switch.vue";
 import Slider from "@/components/base/Slider.vue";
 import RadioGroup from "@/components/base/radio/RadioGroup.vue";
@@ -29,9 +29,10 @@ import InputNumber from "@/components/base/InputNumber.vue";
 import PopConfirm from "@/components/PopConfirm.vue";
 import Textarea from "@/components/base/Textarea.vue";
 import SettingItem from "@/pages/setting/SettingItem.vue";
-import {get, set} from "idb-keyval";
-import {useRuntimeStore} from "@/stores/runtime.ts";
-import {useUserStore} from "@/stores/auth.ts";
+import { get, set } from "idb-keyval";
+import { useRuntimeStore } from "@/stores/runtime.ts";
+import { useUserStore } from "@/stores/user.ts";
+import { useExport } from "@/hooks/export.ts";
 
 const emit = defineEmits<{
   toggleDisabledDialogEscKey: [val: boolean]
@@ -98,7 +99,7 @@ useEventListener('keydown', (e: KeyboardEvent) => {
     } else {
       // 忽略单独的修饰键
       if (shortcutKey === 'Ctrl+' || shortcutKey === 'Alt+' || shortcutKey === 'Shift+' ||
-        e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift') {
+          e.key === 'Control' || e.key === 'Alt' || e.key === 'Shift') {
         return;
       }
 
@@ -168,65 +169,9 @@ function resetShortcutKeyMap() {
   Toast.success('恢复成功')
 }
 
-let exportLoading = $ref(false)
 let importLoading = $ref(false)
 
-async function exportData(notice = '导出成功！') {
-  exportLoading = true
-  const JSZip = await loadJsLib('JSZip', `${Origin}/libs/jszip.min.js`);
-  let data = {
-    version: EXPORT_DATA_KEY.version,
-    val: {
-      setting: {
-        version: SAVE_SETTING_KEY.version,
-        val: settingStore.$state
-      },
-      dict: {
-        version: SAVE_DICT_KEY.version,
-        val: shakeCommonDict(store.$state)
-      },
-      [PracticeSaveWordKey.key]: {
-        version: PracticeSaveWordKey.version,
-        val: {}
-      },
-      [PracticeSaveArticleKey.key]: {
-        version: PracticeSaveArticleKey.version,
-        val: {}
-      },
-      [APP_VERSION.key]: -1
-    }
-  }
-  let d = localStorage.getItem(PracticeSaveWordKey.key)
-  if (d) {
-    try {
-      data.val[PracticeSaveWordKey.key] = JSON.parse(d)
-    } catch (e) {
-    }
-  }
-  let d1 = localStorage.getItem(PracticeSaveArticleKey.key)
-  if (d1) {
-    try {
-      data.val[PracticeSaveArticleKey.key] = JSON.parse(d1)
-    } catch (e) {
-    }
-  }
-  let r = await get(APP_VERSION.key)
-  data.val[APP_VERSION.key] = r
-
-  const zip = new JSZip();
-  zip.file("data.json", JSON.stringify(data));
-
-  const mp3 = zip.folder("mp3");
-  const allRecords = await get(LOCAL_FILE_KEY);
-  for (const rec of allRecords ?? []) {
-    mp3.file(rec.id + ".mp3", rec.file);
-  }
-  exportLoading = false
-  zip.generateAsync({type: "blob"}).then(function (content) {
-    saveAs(content, `${APP_NAME}-User-Data-${dayjs().format('YYYY-MM-DD HH-mm-ss')}.zip`);
-  });
-  Toast.success(notice)
-}
+const {loading: exportLoading, exportData} = useExport()
 
 function importJson(str: string, notice: boolean = true) {
   let obj = {
@@ -427,8 +372,8 @@ function importOldData() {
                        v-if="settingStore.ignoreSimpleWord"
           >
             <Textarea
-              placeholder="多个单词用英文逗号隔号"
-              v-model="simpleWords" :autosize="{minRows: 6, maxRows: 10}"/>
+                placeholder="多个单词用英文逗号隔号"
+                v-model="simpleWords" :autosize="{minRows: 6, maxRows: 10}"/>
           </SettingItem>
 
           <!--          音效-->
@@ -456,16 +401,16 @@ function importOldData() {
                     class="w-50!"
             >
               <Option
-                v-for="item in SoundFileOptions"
-                :key="item.value"
-                :label="item.label"
-                :value="item.value"
+                  v-for="item in SoundFileOptions"
+                  :key="item.value"
+                  :label="item.label"
+                  :value="item.value"
               >
                 <div class="flex justify-between items-center w-full">
                   <span>{{ item.label }}</span>
                   <VolumeIcon
-                    :time="100"
-                    @click="usePlayAudio(getAudioFileUrl(item.value)[0])"/>
+                      :time="100"
+                      @click="usePlayAudio(getAudioFileUrl(item.value)[0])"/>
                 </div>
               </Option>
             </Select>
@@ -583,16 +528,16 @@ function importOldData() {
           <SettingItem mainTitle="字体设置"/>
           <SettingItem title="外语字体">
             <Slider
-              :min="10"
-              :max="100"
-              v-model="settingStore.fontSize.wordForeignFontSize"/>
+                :min="10"
+                :max="100"
+                v-model="settingStore.fontSize.wordForeignFontSize"/>
             <span class="w-10 pl-5">{{ settingStore.fontSize.wordForeignFontSize }}px</span>
           </SettingItem>
           <SettingItem title="中文字体">
             <Slider
-              :min="10"
-              :max="100"
-              v-model="settingStore.fontSize.wordTranslateFontSize"/>
+                :min="10"
+                :max="100"
+                v-model="settingStore.fontSize.wordTranslateFontSize"/>
             <span class="w-10 pl-5">{{ settingStore.fontSize.wordTranslateFontSize }}px</span>
           </SettingItem>
         </div>
@@ -641,7 +586,7 @@ function importOldData() {
                   <input ref="shortcutInput" :value="item[1]?item[1]:'未设置快捷键'" readonly type="text"
                          @blur="handleInputBlur">
                   <span @click.stop="editShortcutKey = ''">按键盘进行设置，<span
-                    class="text-red!">设置完成点击这里</span></span>
+                      class="text-red!">设置完成点击这里</span></span>
                 </div>
                 <div v-else>
                   <div v-if="item[1]">{{ item[1] }}</div>
@@ -678,14 +623,22 @@ function importOldData() {
                      @change="importData">
             </div>
             <PopConfirm
-              title="导入老版本数据前，请先备份当前数据，确定要导入老版本数据吗？"
-              @confirm="importOldData">
+                title="导入老版本数据前，请先备份当前数据，确定要导入老版本数据吗？"
+                @confirm="importOldData">
               <BaseButton>老版本数据导入</BaseButton>
             </PopConfirm>
           </div>
         </div>
 
         <div v-if="tabIndex === 5">
+          <div class="log-item">
+            <div class="mb-2">
+              <div>
+                <div>日期：2025/11/22</div>
+                <div>内容：适配移动端</div>
+              </div>
+            </div>
+          </div>
           <div class="log-item">
             <div class="mb-2">
               <div>
@@ -706,7 +659,9 @@ function importOldData() {
             <div class="mb-2">
               <div>
                 <div>日期：2025/11/14</div>
-                <div>内容：新增文章练习时可跳过空格：如果在单词的最后一位上，不按空格直接输入下一个字母的话，自动跳下一个单词， 按空格也自动跳下一个单词</div>
+                <div>内容：新增文章练习时可跳过空格：如果在单词的最后一位上，不按空格直接输入下一个字母的话，自动跳下一个单词，
+                  按空格也自动跳下一个单词
+                </div>
               </div>
             </div>
           </div>
@@ -841,10 +796,10 @@ function importOldData() {
             <p v-if="userStore.user.phone" class="text-sm color-gray">{{ userStore.user.phone }}</p>
 
             <BaseButton
-              @click="userStore.logout"
-              type="info"
-              class="mt-4"
-              :loading="userStore.isLoading"
+                @click="userStore.logout"
+                type="info"
+                class="mt-4"
+                :loading="userStore.isLoading"
             >
               退出登录
             </BaseButton>
@@ -1076,6 +1031,97 @@ function importOldData() {
     height: 100%;
     width: 100%;
     opacity: 0;
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .setting {
+    flex-direction: column;
+    
+    .left {
+      width: 100%;
+      border-right: none;
+      border-bottom: 2px solid gainsboro;
+      
+      .tabs {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 0.5rem;
+        gap: 0.3rem;
+        
+        .tab {
+          white-space: nowrap;
+          padding: 0.4rem 0.6rem;
+          font-size: 0.9rem;
+          
+          span {
+            display: none;
+          }
+        }
+      }
+    }
+    
+    .content {
+      padding: 0 1rem;
+      
+      .row {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        min-height: auto;
+        padding: 0.5rem 0;
+        
+        .wrapper {
+          width: 100%;
+          justify-content: flex-start;
+          
+          .set-key {
+            width: 100%;
+            
+            input {
+              width: 100%;
+              max-width: 200px;
+            }
+          }
+          
+          // 补充：选择器和输入框优化
+          .base-select, .base-input {
+            width: 100% !important;
+            max-width: none;
+          }
+          
+          // 单选按钮组优化
+          .radio-group {
+            flex-direction: column;
+            gap: 0.5rem;
+            
+            .radio {
+              min-height: 44px;
+              width: 100%;
+            }
+          }
+          
+          // 滑块优化
+          .slider {
+            width: 100%;
+          }
+        }
+        
+        .main-title {
+          font-size: 1rem;
+        }
+        
+        .item-title {
+          font-size: 0.9rem;
+        }
+      }
+      
+      .body {
+        height: auto;
+        max-height: 60vh;
+      }
+    }
   }
 }
 </style>

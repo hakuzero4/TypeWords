@@ -75,6 +75,10 @@
   --color-link: #2563EB;
 
   --color-card-bg: white;
+
+
+  --bg-card-primary: white;
+  --bg-card-secend: rgb(247, 247, 247);
 }
 
 .footer {
@@ -128,6 +132,9 @@ html.dark {
 
   --color-card-bg: rgb(30, 31, 34);
 
+  --bg-card-primary: rgb(30, 31, 34);
+  --bg-card-secend: rgb(43, 45, 48);
+
   .footer {
     &.hide {
       --color-progress-bar: var(--color-third) !important;
@@ -156,7 +163,27 @@ html.dark {
     --article-toolbar-width: 40rem;
     --article-panel-width: 16rem;
   }
+}
 
+// 移动端适配
+@media (max-width: 768px) {
+  :root {
+    --toolbar-width: 100vw;
+    --panel-width: 100vw;
+    --article-width: 100vw;
+    --article-toolbar-width: 100vw;
+    --space: 0.5rem;
+    --stat-gap: 0.3rem;
+    --article-panel-width: 100vw;
+    --word-panel-margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  :root {
+    --space: 0.3rem;
+    --stat-gap: 0.2rem;
+  }
 }
 
 .anim {
@@ -467,8 +494,16 @@ a {
 
 #typing-listener {
   position: fixed;
-  right: 0;
-  bottom: 0;
-  z-index: 9999;
-  height: 3rem;
+  left: -9999px;
+  top: -9999px;
+  width: 1px;
+  height: 1px;
+  opacity: 0.01;
+  z-index: -1;
+  pointer-events: none;
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 16px; // 防止iOS缩放
+  color: transparent; // 文字透明
 }

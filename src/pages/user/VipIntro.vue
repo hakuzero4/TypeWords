@@ -2,7 +2,7 @@
 import BasePage from '@/components/BasePage.vue'
 import BaseButton from '@/components/BaseButton.vue'
 import {useRouter} from 'vue-router'
-import {useUserStore} from '@/stores/auth.ts'
+import {useUserStore} from '@/stores/user.ts'
 import {User} from "@/apis/user.ts";
 import {computed, onMounted, onUnmounted, ref, watch} from "vue";
 import Header from "@/components/Header.vue";

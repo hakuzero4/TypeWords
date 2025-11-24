@@ -4,7 +4,7 @@ import { DictId } from "@/types/types.ts";
 import BasePage from "@/components/BasePage.vue";
 import { computed, onMounted, reactive, ref, shallowReactive } from "vue";
 import { useRuntimeStore } from "@/stores/runtime.ts";
-import { _getDictDataByUrl, _nextTick, convertToWord, loadJsLib, useNav } from "@/utils";
+import { _getDictDataByUrl, _nextTick, convertToWord, isMobile, loadJsLib, useNav } from "@/utils";
 import { nanoid } from "nanoid";
 import BaseIcon from "@/components/BaseIcon.vue";
 import BaseTable from "@/components/BaseTable.vue";
@@ -33,6 +33,7 @@ const runtimeStore = useRuntimeStore()
 const base = useBaseStore()
 const router = useRouter()
 const route = useRoute()
+const isMob = isMobile()
 
 let loading = $ref(false)
 
@@ -158,21 +159,25 @@ function word2Str(word) {
 function editWord(word) {
   isOperate = true
   wordForm = word2Str(word)
+  if (isMob) activeTab = 'edit'
 }
 
 function addWord() {
   // setTimeout(wordListRef?.scrollToBottom, 100)
   isOperate = true
   wordForm = getDefaultFormWord()
+  if (isMob) activeTab = 'edit'
 }
 
 function closeWordForm() {
   isOperate = false
   wordForm = getDefaultFormWord()
+  if (isMob) activeTab = 'list'
 }
 
 let isEdit = $ref(false)
 let isAdd = $ref(false)
+let activeTab = $ref<'list' | 'edit'>('list') // 移动端标签页状态
 
 const showBookDetail = computed(() => {
   return !(isAdd || isEdit);
@@ -375,11 +380,11 @@ defineRender(() => {
   return (
       <BasePage>
         {
-          showBookDetail.value ? <div className="card mb-0 h-[95vh] flex flex-col">
-                <div class="flex justify-between items-center relative">
-                  <BackIcon class="z-2"/>
-                  <div class="absolute page-title text-align-center w-full">{runtimeStore.editDict.name}</div>
-                  <div class="flex">
+          showBookDetail.value ? <div className="card mb-0 dict-detail-card flex flex-col">
+                <div class="dict-header flex justify-between items-center relative">
+                  <BackIcon class="dict-back z-2"/>
+                  <div class="dict-title absolute page-title text-align-center w-full">{runtimeStore.editDict.name}</div>
+                  <div class="dict-actions flex gap-2">
                     <BaseButton loading={studyLoading || loading} type="info"
                                 onClick={() => isEdit = true}>编辑</BaseButton>
                     <BaseButton loading={studyLoading || loading} onClick={addMyStudyList}>学习</BaseButton>
@@ -388,8 +393,26 @@ defineRender(() => {
                 <div class="text-lg  ">介绍：{runtimeStore.editDict.description}</div>
                 <div class="line my-3"></div>
 
-                <div class="flex flex-1 overflow-hidden">
-                  <div class="w-4/10">
+                {/* 移动端标签页导航 */}
+                {isMob && isOperate && (
+                    <div class="tab-navigation mb-3">
+                      <div
+                          class={`tab-item ${activeTab === 'list' ? 'active' : ''}`}
+                          onClick={() => activeTab = 'list'}
+                      >
+                        单词列表
+                      </div>
+                      <div
+                          class={`tab-item ${activeTab === 'edit' ? 'active' : ''}`}
+                          onClick={() => activeTab = 'edit'}
+                      >
+                        {wordForm.id ? '编辑' : '添加'}单词
+                      </div>
+                    </div>
+                )}
+
+                <div class="flex flex-1 overflow-hidden content-area">
+                  <div class={`word-list-section ${isMob && isOperate && activeTab !== 'list' ? 'mobile-hidden' : ''}`}>
                     <BaseTable
                         ref={tableRef}
                         class="h-full"
@@ -438,7 +461,7 @@ defineRender(() => {
                   </div>
                   {
                     isOperate ? (
-                        <div class="flex-1 flex flex-col ml-4">
+                        <div class={`edit-section flex-1 flex flex-col ${isMob && activeTab !== 'edit' ? 'mobile-hidden' : ''}`}>
                           <div class="common-title">
                             {wordForm.id ? '修改' : '添加'}单词
                           </div>
@@ -524,16 +547,16 @@ defineRender(() => {
                   }
                 </div>
               </div> :
-              <div class="card mb-0 h-[95vh]">
-                <div class="flex justify-between items-center relative">
-                  <BackIcon class="z-2" onClick={() => {
+              <div class="card mb-0 dict-detail-card">
+                <div class="dict-header flex justify-between items-center relative">
+                  <BackIcon class="dict-back z-2" onClick={() => {
                     if (isAdd) {
                       router.back()
                     } else {
                       isEdit = false
                     }
                   }}/>
-                  <div class="absolute page-title text-align-center w-full">
+                  <div class="dict-title absolute page-title text-align-center w-full">
                     {runtimeStore.editDict.id ? '修改' : '创建'}词典
                   </div>
                 </div>
@@ -559,5 +582,122 @@ defineRender(() => {
 </script>
 
 <style scoped lang="scss">
+.dict-detail-card {
+  min-height: calc(100vh - 3rem);
+}
 
+.dict-header {
+  gap: 0.5rem;
+}
+
+.dict-actions {
+  flex-wrap: wrap;
+}
+
+.word-list-section {
+  width: 40%;
+}
+
+.edit-section {
+  margin-left: 1rem;
+}
+
+.tab-navigation {
+  display: none; // 默认隐藏，移动端显示
+}
+
+.mobile-hidden {
+  display: none;
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .dict-detail-card {
+    min-height: calc(100vh - 2rem);
+    margin-bottom: 0 !important;
+  }
+
+  .dict-header {
+    width: 100%;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .dict-header .dict-back {
+    align-self: flex-start;
+  }
+
+  .dict-header .dict-title {
+    position: static !important;
+    width: 100%;
+  }
+
+  .dict-header .dict-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 0.75rem;
+  }
+
+  .tab-navigation {
+    display: flex;
+    border-bottom: 2px solid var(--color-item-border);
+    margin-bottom: 1rem;
+    gap: 0;
+
+    .tab-item {
+      flex: 1;
+      padding: 0.75rem 1rem;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--color-sub-text);
+      border-bottom: 2px solid transparent;
+      margin-bottom: -2px;
+      transition: all 0.3s ease;
+      user-select: none;
+
+      &:active {
+        transform: scale(0.98);
+      }
+
+      &.active {
+        color: var(--color-icon-hightlight);
+        border-bottom-color: var(--color-icon-hightlight);
+      }
+    }
+  }
+
+  .content-area {
+    flex-direction: column;
+
+    .word-list-section,
+    .edit-section {
+      width: 100% !important;
+      margin-left: 0 !important;
+      max-width: 100%;
+    }
+
+    .edit-section {
+      margin-top: 0;
+    }
+  }
+}
+
+// 超小屏幕适配
+@media (max-width: 480px) {
+  .dict-detail-card {
+    min-height: calc(100vh - 1rem);
+  }
+
+  .tab-navigation {
+    .tab-item {
+      padding: 0.6rem 0.5rem;
+      font-size: 0.9rem;
+    }
+  }
+}
 </style>

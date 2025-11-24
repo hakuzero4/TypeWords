@@ -63,4 +63,49 @@ watch(() => props.groupByTag, () => {
   }
 }
 
+// 移动端适配
+@media (max-width: 768px) {
+  .flex.items-center {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    
+    .category {
+      font-size: 1rem;
+      font-weight: bold;
+    }
+    
+    .tags {
+      margin: 0.5rem 0;
+      gap: 0.3rem;
+      
+      .tag {
+        padding: 0.3rem 0.8rem;
+        font-size: 0.9rem;
+        min-height: 44px;
+        min-width: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+    }
+  }
+}
+
+// 超小屏幕适配
+@media (max-width: 480px) {
+  .flex.items-center {
+    .category {
+      font-size: 0.9rem;
+    }
+    
+    .tags {
+      .tag {
+        padding: 0.2rem 0.6rem;
+        font-size: 0.8rem;
+      }
+    }
+  }
+}
+
 </style>

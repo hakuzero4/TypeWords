@@ -184,18 +184,17 @@ const progress = $computed(() => {
 
 <style scoped lang="scss">
 
-
 .footer {
   flex-shrink: 0;
   width: var(--toolbar-width);
   position: relative;
+  z-index: 20; // 提高z-index确保在最上方
 
   &.hide {
     margin-bottom: -6rem;
     margin-top: 3rem;
 
     .progress-wrap {
-
       bottom: calc(100% + 1.8rem);
     }
   }
@@ -206,10 +205,10 @@ const progress = $computed(() => {
     box-sizing: border-box;
     border-radius: .6rem;
     background: var(--color-second);
-    padding: .2rem var(--space) .4rem var(--space);
-    z-index: 2;
+    padding: .2rem var(--space) calc(.4rem + env(safe-area-inset-bottom, 0px)) var(--space);
     border: 1px solid var(--color-item-border);
     box-shadow: var(--shadow);
+    z-index: 10;
 
     .stat {
       margin-top: .5rem;
@@ -240,6 +239,7 @@ const progress = $computed(() => {
     box-sizing: border-box;
     position: fixed;
     bottom: 1rem;
+    z-index: 1; // 确保进度条也在最上方
   }
 
   .arrow {
@@ -255,6 +255,114 @@ const progress = $computed(() => {
     &.down {
       top: -90%;
       transform: rotate(90deg);
+    }
+  }
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .footer {
+    width: 100%;
+    
+    .bottom {
+      padding: 0.3rem 0.5rem 0.5rem 0.5rem;
+      border-radius: 0.4rem;
+      
+      .stat {
+        margin-top: 0.3rem;
+        gap: 0.2rem;
+        flex-direction: row;
+        overflow-x: auto;
+        
+        .row {
+          min-width: 3.5rem;
+          gap: 0.2rem;
+          
+          .num {
+            font-size: 0.8rem;
+            font-weight: bold;
+          }
+          
+          .name {
+            font-size: 0.7rem;
+          }
+        }
+      }
+      
+      // 移动端按钮组调整 - 改为网格布局
+      .flex.gap-2 {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.4rem;
+        justify-content: center;
+        
+        .base-icon {
+          padding: 0.3rem;
+          font-size: 1rem;
+          min-height: 44px;
+          min-width: 44px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+        }
+      }
+    }
+    
+    .progress-wrap {
+      width: 100%;
+      padding: 0 0.5rem;
+      bottom: 0.5rem;
+    }
+    
+    .arrow {
+      font-size: 1rem;
+      padding: 0.3rem;
+    }
+  }
+}
+
+// 超小屏幕适配
+@media (max-width: 480px) {
+  .footer {
+    .bottom {
+      padding: 0.2rem 0.3rem 0.3rem 0.3rem;
+      
+      .stat {
+        margin-top: 0.2rem;
+        gap: 0.1rem;
+        
+        .row {
+          min-width: 3rem;
+          gap: 0.1rem;
+          
+          .num {
+            font-size: 0.7rem;
+          }
+          
+          .name {
+            font-size: 0.6rem;
+          }
+          
+          // 隐藏部分统计信息，只保留关键数据
+          &:nth-child(n+3) {
+            display: none;
+          }
+        }
+      }
+      
+      .flex.gap-2 {
+        gap: 0.2rem;
+        
+        .base-icon {
+          padding: 0.2rem;
+          font-size: 0.9rem;
+        }
+      }
+    }
+    
+    .progress-wrap {
+      padding: 0 0.3rem;
+      bottom: 0.3rem;
     }
   }
 }

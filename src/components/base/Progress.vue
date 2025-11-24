@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import {computed} from 'vue';
+import { computed } from 'vue';
 
 interface IProps {
   percentage: number;
@@ -34,10 +34,7 @@ const trackStyle = computed(() => {
   };
 });
 
-const progressTextSize = computed(() => {
-  const baseSize = props.strokeWidth * 0.83 + 6;
-  return props.size === 'large' ? baseSize * 1.2 : baseSize;
-});
+const progressTextSize = 18
 
 const content = computed(() => {
   if (typeof props.format === 'function') {
@@ -102,6 +99,7 @@ const content = computed(() => {
     color: var(--el-text-color-regular);
     font-size: 14px;
     text-align: center;
+    flex-shrink: 0;
   }
 }
 </style>

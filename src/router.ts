@@ -13,7 +13,7 @@ import Setting from "@/pages/setting/Setting.vue";
 import Login from "@/pages/user/login.vue";
 import User from "@/pages/user/User.vue";
 import VipIntro from "@/pages/user/VipIntro.vue";
-// import { useAuthStore } from "@/stores/auth.ts";
+// import { useAuthStore } from "@/stores/user.ts";
 
 export const routes: RouteRecordRaw[] = [
   {

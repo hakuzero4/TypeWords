@@ -1,4 +1,4 @@
-import http, { axiosInstance } from "@/utils/http.ts";
+import http, {axiosInstance, AxiosResponse} from "@/utils/http.ts";
 import { Dict } from "@/types/types.ts";
 import { cloneDeep } from "@/utils";
 
@@ -48,9 +48,22 @@ export function addDict(params?, data?) {
   return http<Dict>('dict/addDict', remove(data), remove(params), 'post')
 }
 
-export function uploadImportData(data, onUploadProgress) {
+export function uploadImportData<T>(data, onUploadProgress): Promise<AxiosResponse<T>> {
   return axiosInstance({
     url: 'dict/uploadImportData',
+    method: 'post',
+    headers: {
+      contentType: 'formdata',
+    },
+    timeout: 1000000000,
+    data,
+    onUploadProgress
+  })
+}
+
+export function upload(data, onUploadProgress) {
+  return axiosInstance({
+    url: 'file/upload',
     method: 'post',
     headers: {
       contentType: 'formdata',

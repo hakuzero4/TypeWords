@@ -696,4 +696,116 @@ function setStartTime(val: Sentence, i: number, j: number) {
     }
   }
 }
+
+// 移动端适配
+@media (max-width: 768px) {
+  .content {
+    flex-direction: column;
+    padding: 0.5rem;
+    gap: 1rem;
+    
+    .row {
+      width: 100%;
+      flex: none;
+      
+      &:nth-child(3) {
+        flex: none;
+      }
+      
+      .title {
+        font-size: 1.2rem;
+      }
+      
+      // 表单元素优化
+      .base-input, .base-textarea {
+        width: 100%;
+        font-size: 16px; // 防止iOS自动缩放
+      }
+      
+      .base-textarea {
+        min-height: 150px;
+        max-height: 30vh;
+      }
+      
+      // 按钮组优化
+      .flex.gap-2 {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        
+        .base-button {
+          min-height: 44px;
+          flex: 1;
+          min-width: 120px;
+        }
+      }
+      
+      // 文章翻译区域优化
+      .article-translate {
+        .section {
+          margin-bottom: 1rem;
+          
+          .section-title {
+            font-size: 1rem;
+            padding: 0.4rem;
+          }
+          
+          .sentence {
+            flex-direction: column;
+            gap: 0.5rem;
+            padding: 0.4rem;
+            
+            .flex-\[7\] {
+              width: 100%;
+            }
+            
+            .flex-\[2\] {
+              width: 100%;
+              justify-content: flex-start;
+              
+              .flex.justify-end.gap-2 {
+                justify-content: flex-start;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+              }
+            }
+          }
+        }
+      }
+      
+      // 选项区域优化
+      .options {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.5rem;
+        
+        .status {
+          font-size: 0.9rem;
+        }
+        
+        .warning, .success {
+          font-size: 1rem;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .content {
+    padding: 0.3rem;
+    
+    .row {
+      .base-textarea {
+        min-height: 120px;
+      }
+      
+      .flex.gap-2 {
+        .base-button {
+          min-width: 100px;
+          font-size: 0.9rem;
+        }
+      }
+    }
+  }
+}
 </style>

@@ -71,7 +71,7 @@ export function loginApi(params: LoginParams) {
 }
 
 export function registerApi(params: RegisterParams) {
-  return http<RegisterResponse>('user/register', params, null, 'post')
+  return http<{ token:string }>('user/register', params, null, 'post')
 }
 
 export function sendCode(params: SendCodeParams) {

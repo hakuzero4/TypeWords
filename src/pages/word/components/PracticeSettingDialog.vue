@@ -136,4 +136,80 @@ watch(() => model.value, (n) => {
     @apply bg-blue color-white;
   }
 }
+
+// 移动端适配
+@media (max-width: 768px) {
+  .target-modal {
+    width: 90vw !important;
+    max-width: 400px;
+    padding: 0 1rem;
+    
+    // 模式选择
+    .center .flex.gap-4 {
+      width: 100%;
+      flex-direction: column;
+      height: auto;
+      gap: 0.8rem;
+      
+      .mode-item {
+        width: 100%;
+        padding: 1rem;
+        
+        .title {
+          font-size: 1rem;
+        }
+        
+        .desc {
+          font-size: 0.85rem;
+          margin-top: 0.5rem;
+        }
+      }
+    }
+    
+    // 统计显示
+    .text-center {
+      font-size: 0.9rem;
+      
+      .text-3xl {
+        font-size: 1.5rem;
+      }
+    }
+    
+    // 滑块控件
+    .flex.mb-4, .flex.mb-6 {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+      
+      span {
+        width: 100%;
+      }
+      
+      .flex-1 {
+        width: 100%;
+      }
+    }
+    
+    // 按钮
+    .base-button {
+      width: 100%;
+      min-height: 44px;
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .target-modal {
+    width: 95vw !important;
+    padding: 0 0.5rem;
+    
+    .text-center {
+      font-size: 0.8rem;
+      
+      .text-3xl {
+        font-size: 1.2rem;
+      }
+    }
+  }
+}
 </style>

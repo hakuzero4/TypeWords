@@ -5,7 +5,7 @@ import {useBaseStore} from "@/stores/base.ts";
 import {useSettingStore} from "@/stores/setting.ts";
 import {usePlayBeep, usePlayCorrect, usePlayKeyboardAudio} from "@/hooks/sound.ts";
 import {emitter, EventKey, useEvents} from "@/utils/eventBus.ts";
-import {_dateFormat, _nextTick, msToHourMinute, total} from "@/utils";
+import { _dateFormat, _nextTick, isMobile, msToHourMinute, total } from "@/utils";
 import '@imengyu/vue3-context-menu/lib/vue3-context-menu.css'
 import ContextMenu from '@imengyu/vue3-context-menu'
 import BaseButton from "@/components/BaseButton.vue";
@@ -49,7 +49,8 @@ const emit = defineEmits<{
   replay: [],
 }>()
 
-let typeArticleRef = $ref<HTMLInputElement>(null)
+let typeArticleRef = $ref<HTMLInputElement>()
+let mobileInputRef = $ref<HTMLInputElement>()
 let articleWrapperRef = $ref<HTMLInputElement>(null)
 let sectionIndex = $ref(0)
 let sentenceIndex = $ref(0)
@@ -84,6 +85,7 @@ const {
 const store = useBaseStore()
 const settingStore = useSettingStore()
 const statStore = usePracticeStore()
+const isMob = isMobile()
 
 watch([() => sectionIndex, () => sentenceIndex, () => wordIndex, () => stringIndex], ([a, b, c,]) => {
   localStorage.setItem(PracticeSaveArticleKey.key, JSON.stringify({
@@ -149,6 +151,7 @@ function init() {
     typeArticleRef?.scrollTo({top: 0, behavior: "smooth"})
   }
   checkTranslateLocation().then(() => checkCursorPosition())
+  focusMobileInput()
 }
 
 function checkCursorPosition(a = sectionIndex, b = sentenceIndex, c = wordIndex) {
@@ -180,6 +183,10 @@ function checkCursorPosition(a = sectionIndex, b = sentenceIndex, c = wordIndex)
 function checkTranslateLocation() {
   // console.log('checkTranslateLocation')
   return new Promise<void>(resolve => {
+    if (isMob) {
+      resolve()
+      return
+    }
     _nextTick(() => {
       let articleRect = articleWrapperRef.getBoundingClientRect()
       props.article.sections.map((v, i) => {
@@ -202,6 +209,42 @@ function checkTranslateLocation() {
       resolve()
     }, 300)
   })
+}
+
+function focusMobileInput() {
+  if (!isMob) return
+  mobileInputRef?.focus()
+}
+
+function processMobileCharacter(char: string) {
+  if (!char) return
+  const code = char === ' ' ? 'Space' : char === '\n' ? 'Enter' : `Key${char.toUpperCase()}`
+  const fakeEvent = {
+    key: char,
+    code,
+    preventDefault() {},
+    stopPropagation() {},
+  } as unknown as KeyboardEvent
+  onTyping(fakeEvent)
+}
+
+function handleMobileInput(event: Event) {
+  if (!isMob) return
+  const target = event.target as HTMLInputElement
+  const value = target?.value ?? ''
+  if (!value) return
+  for (const char of value) {
+    processMobileCharacter(char)
+  }
+  target.value = ''
+}
+
+function handleMobileBeforeInput(event: InputEvent) {
+  if (!isMob) return
+  if (event.inputType === 'deleteContentBackward') {
+    event.preventDefault()
+    del()
+  }
 }
 
 let isTyping = false
@@ -242,6 +285,7 @@ function nextSentence() {
     emit('play', {sentence: currentSection[sentenceIndex], handle: false})
   }
   lock = false
+  focusMobileInput()
 }
   
 function onTyping(e: KeyboardEvent) {
@@ -336,7 +380,7 @@ function onTyping(e: KeyboardEvent) {
     isTyping = false
   }
 }
-  
+
 function play() {
   let currentSection = props.article.sections[sectionIndex]
   emit('play', {sentence: currentSection[sentenceIndex], handle: true})
@@ -387,6 +431,7 @@ function del() {
     }
     input = currentWord.input = currentWord.input.slice(0, stringIndex)
     checkCursorPosition()
+    focusMobileInput()
   }
 }
 
@@ -524,6 +569,9 @@ onMounted(() => {
     wrong = input = ''
   })
   emitter.on(EventKey.onTyping, onTyping)
+  if (isMob) {
+    focusMobileInput()
+  }
 })
 
 onUnmounted(() => {
@@ -549,7 +597,19 @@ const currentPractice = inject('currentPractice', [])
 </script>
 
 <template>
-  <div class="typing-article" ref="typeArticleRef">
+  <div class="typing-article" ref="typeArticleRef" @click="focusMobileInput">
+    <input
+        v-if="isMob"
+        ref="mobileInputRef"
+        class="mobile-input"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="none"
+        @beforeinput="handleMobileBeforeInput"
+        @input="handleMobileInput"
+    />
     <header class="mb-4">
       <div class="title word"><span class="font-family text-3xl">{{ store.sbook.lastLearnIndex + 1 }}.</span>{{ props.article.title }}</div>
       <div class="titleTranslate" v-if="settingStore.translate">{{ props.article.titleTranslate }}</div>
@@ -600,6 +660,11 @@ const currentPractice = inject('currentPractice', [])
                        :is-wait="isCurrent(indexI,indexJ,indexW) && isSpace"
                        :is-shake="isCurrent(indexI,indexJ,indexW) && isSpace && wrong !== ''"
                    />
+                  </span>
+                  <span
+                      class="sentence-translate-mobile"
+                      v-if="isMob && settingStore.translate && sentence.translate">
+                    {{ sentence.translate }}
                   </span>
                 </span>
         </div>
@@ -701,6 +766,14 @@ $article-lh: 2.4;
     }
   }
 
+  .mobile-input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+    height: 0;
+    width: 0;
+  }
+
   .article-content {
     position: relative;
   }
@@ -794,6 +867,126 @@ $article-lh: 2.4;
         transition: all .3s;
         display: inline-block;
       }
+    }
+  }
+}
+
+.sentence-translate-mobile {
+  display: none;
+}
+
+// 移动端适配
+@media (max-width: 768px) {
+  .typing-article {
+    width: 100vw;
+    max-width: 100%;
+    padding: 1rem 0.5rem;
+    
+    // 标题优化
+    header {
+      .title {
+        font-size: 1.2rem;
+        line-height: 1.4;
+        word-break: break-word;
+        margin-bottom: 1rem;
+        
+        .font-family {
+          font-size: 1rem;
+        }
+      }
+      
+      .titleTranslate {
+        font-size: 0.9rem;
+        margin-top: 0.5rem;
+        opacity: 0.8;
+      }
+    }
+    
+    // 句子显示优化
+    .article-content {
+      article {
+        .section {
+          margin-bottom: 1rem;
+          
+          .sentence {
+            font-size: 1rem;
+            line-height: 1.6;
+            word-break: break-word;
+            margin-bottom: 0.5rem;
+            
+            .word {
+              .word-wrap {
+                padding: 0.1rem 0.05rem;
+                min-height: 24px;
+                display: inline-flex;
+                align-items: center;
+              }
+            }
+          }
+        }
+      }
+    }
+
+    .sentence-translate-mobile {
+      display: block;
+      margin-top: 0.4rem;
+      font-size: 0.9rem;
+      line-height: 1.4;
+      color: var(--color-font-3);
+      font-family: var(--zh-article-family);
+      word-break: break-word;
+    }
+    
+    // 翻译区域优化
+    .translate {
+      display: none;
+    }
+    
+    // 问答表单优化
+    .question-form {
+      padding: 0.5rem;
+      
+      .base-button {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 0.5rem;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .typing-article {
+    padding: 0.5rem 0.3rem;
+    
+    header {
+      .title {
+        font-size: 1rem;
+        
+        .font-family {
+          font-size: 0.9rem;
+        }
+      }
+      
+      .titleTranslate {
+        font-size: 0.8rem;
+      }
+    }
+    
+    .article-content {
+      article {
+        .section {
+          .sentence {
+            font-size: 0.9rem;
+            line-height: 1.5;
+          }
+        }
+      }
+    }
+    
+    .sentence-translate-mobile {
+      font-size: 0.85rem;
+      line-height: 1.35;
     }
   }
 }

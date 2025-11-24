@@ -4,7 +4,7 @@ import {useRoute} from 'vue-router'
 import BaseInput from "@/components/base/BaseInput.vue";
 import BaseButton from "@/components/BaseButton.vue";
 import {APP_NAME} from "@/config/env.ts";
-import {useUserStore} from "@/stores/auth.ts";
+import {useUserStore} from "@/stores/user.ts";
 import {loginApi, LoginParams, registerApi, resetPasswordApi} from "@/apis/user.ts";
 import {accountRules, codeRules, passwordRules, phoneRules} from "@/utils/validation.ts";
 import Toast from "@/components/base/toast/Toast.ts";
@@ -13,11 +13,14 @@ import Form from "@/components/base/form/Form.vue";
 import Notice from "@/pages/user/Notice.vue";
 import {FormInstance} from "@/components/base/form/types.ts";
 import {PASSWORD_CONFIG, PHONE_CONFIG} from "@/config/auth.ts";
-import {CodeType} from "@/types/types.ts";
+import {CodeType, ImportStatus} from "@/types/types.ts";
 import Code from "@/pages/user/Code.vue";
-import {isNewUser, useNav} from "@/utils";
+import {isNewUser, sleep, useNav} from "@/utils";
 import Header from "@/components/Header.vue";
 import PopConfirm from "@/components/PopConfirm.vue";
+import {useExport} from "@/hooks/export.ts";
+import {getProgress, upload, uploadImportData} from "@/apis";
+import {Exception} from "sass";
 
 // 状态管理
 const userStore = useUserStore()
@@ -35,7 +38,7 @@ let qrStatus = $ref<'idle' | 'scanned' | 'expired' | 'cancelled'>('idle')
 let qrExpireTimer: ReturnType<typeof setTimeout> | null = null
 let qrCheckInterval: ReturnType<typeof setInterval> | null = null
 let waitForImportConfirmation = $ref(true)
-let isImporting = $ref(true)
+
 const QR_EXPIRE_TIME = 5 * 60 * 1000 // 5分钟过期
 
 
@@ -112,6 +115,11 @@ const currentFormRef = $computed<FormInstance>(() => {
   else return forgotFormRef
 })
 
+function loginSuccess(token: string) {
+  // userStore.setToken(token)
+  waitForImportConfirmation = true
+}
+
 // 统一登录处理
 async function handleLogin() {
   currentFormRef.validate(async (valid) => {
@@ -128,9 +136,7 @@ async function handleLogin() {
       }
       let res = await loginApi(data as LoginParams)
       if (res.success) {
-        userStore.setToken(res.data.token)
-        Toast.success('登录成功')
-        router.back()
+        loginSuccess(res.data.token)
       } else {
         Toast.error(res.msg || '登录失败')
         if (res.code === 499) {
@@ -153,11 +159,9 @@ async function handleRegister() {
       loading = true
       let res = await registerApi(registerForm)
       if (res.success) {
-        userStore.setToken(res.data.token)
-        userStore.setUser(res.data.user as any)
         Toast.success('注册成功')
-        // 跳转到首页或用户中心
-        router.push('/')
+        await sleep(1500)
+        loginSuccess(res.data.token)
       } else {
         Toast.error(res.msg || '注册失败')
       }
@@ -271,7 +275,7 @@ function cancelWechatLogin() {
 
 // 初始化页面
 onMounted(() => {
-  console.log('route.query', route.query)
+  // console.log('route.query', route.query)
   if (route.query?.register) {
     currentMode = 'register'
   }
@@ -280,7 +284,81 @@ onMounted(() => {
 // 组件卸载时清理定时器
 onBeforeUnmount(() => {
   clearQRTimers()
+  clearInterval(timer)
 })
+
+enum ImportStep {
+  CONFIRMATION,//等待确认
+  PROCESSING,//处理中
+  SUCCESS,//成功
+  FAIL,//失败
+}
+
+const {exportData} = useExport()
+let importStep = $ref<ImportStep>(ImportStep.CONFIRMATION)
+let isImporting = $ref(false)
+let reason = $ref('')
+let timer = $ref(-1)
+let requestCount = $ref(0)
+
+async function startSync() {
+  importStep = ImportStep.PROCESSING
+  return
+  if (importStep === ImportStep.PROCESSING) return
+  try {
+    importStep = ImportStep.PROCESSING
+    reason = '导出数据中'
+    let res = await exportData('')
+    reason = '上传数据中'
+    let formData = new FormData()
+    formData.append('file', res, "example.zip")
+    let result = await uploadImportData(formData, progressEvent => {
+      let percent = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+      reason = `上传进度(${percent}%)`
+    })
+    if (result.success) {
+      reason = `上传完成; 正在解析中`
+      clearInterval(timer)
+      timer = setInterval(async () => {
+        let r = await getProgress()
+        if (r.success) {
+          if (r.data.status === ImportStatus.Success) {
+            reason = '同步完成'
+            clearInterval(timer)
+            importStep = ImportStep.SUCCESS
+          } else if (r.data.status === ImportStatus.Fail) {
+            throw new Error('同步失败，请联系管理员')
+          } else {
+            reason = r.data.reason
+            if (requestCount > 15) {
+              throw new Error('同步失败，请联系管理员')
+            }
+            if (reason === '解析文件中') {
+              requestCount++
+            }
+          }
+        } else {
+          throw new Error('无同步记录')
+        }
+      }, 2000)
+    } else {
+      throw new Error(`同步失败，${result.msg ? ('原因: ' + result.msg) : ''}，请联系管理员`)
+    }
+  } catch (error) {
+    Toast.error(error.message || '同步失败')
+    reason = error.message || '同步失败'
+    clearInterval(timer)
+    importStep = ImportStep.FAIL
+  }
+}
+
+function logout() {
+  waitForImportConfirmation = false
+}
+
+function forgetData() {
+
+}
 </script>
 
 <template>
@@ -586,38 +664,74 @@ onBeforeUnmount(() => {
     <div v-else class="card-white p-6 w-100">
       <div class="title">同步数据确认</div>
       <div class="flex flex-col justify-between h-60">
-        <div v-if="!isImporting">
-          <h2>检测到您本地存在使用记录</h2>
-          <h3>是否需要同步到账户中？</h3>
-        </div>
-        <div>
-          <h3 class="text-align-center">正在导入中</h3>
-          <ol class="pl-4">
-            <li>
-              您的用户数据已自动下载到您的电脑中
-            </li>
-            <li>
-              随后将开始数据同步
-            </li>
-            <li>
-              如果您的数据量很大，这将是一个耗时操作
-            </li>
-            <li class="color-red-5 font-bold">
-              请耐心等待，请勿关闭此页面
-            </li>
-          </ol>
-        </div>
-        <div class="flex gap-space justify-end">
-          <PopConfirm :title="[
-            {text:'您的用户数据将以压缩包自动下载到您的电脑中',type:'normal'},
-            {text:'随后用户数据将被移除',type:'redBold'},
-            {text:'是否确认继续？',type:'normal'},
-          ]">
-            <BaseButton type="info">放弃数据</BaseButton>
-          </PopConfirm>
+        <template v-if="importStep === ImportStep.CONFIRMATION">
+          <div>
+            <h2>检测到您本地存在使用记录</h2>
+            <h3>是否需要同步到账户中？</h3>
+          </div>
+          <div class="flex gap-space justify-end">
+            <template v-if="importStep === ImportStep.CONFIRMATION">
+              <BaseButton type="info" @click="logout">退出登录</BaseButton>
 
-          <BaseButton>确认同步</BaseButton>
-        </div>
+              <PopConfirm :title="[
+            {text:'您的用户数据将以压缩包自动下载到您的电脑中，以便您随时恢复',type:'normal'},
+            {text:'随后网站的用户数据将被删除',type:'redBold'},
+            {text:'是否确认继续？',type:'normal'},
+          ]"
+                          @confirm="forgetData"
+              >
+                <BaseButton type="info">放弃数据</BaseButton>
+              </PopConfirm>
+            </template>
+            <BaseButton @click="startSync">确认同步</BaseButton>
+          </div>
+        </template>
+        <template v-if="importStep === ImportStep.PROCESSING">
+          <div>
+            <h3 class="text-align-center">正在导入中</h3>
+            <ol class="pl-4">
+              <li>
+                您的用户数据已自动下载到您的电脑中，以便随时恢复
+              </li>
+              <li>
+                随后将开始数据同步
+              </li>
+              <li>
+                如果您的数据量很大，这将是一个耗时操作
+              </li>
+              <li class="color-red-5 font-bold">
+                请耐心等待，请勿关闭此页面
+              </li>
+            </ol>
+            <div class="flex items-center justify-between gap-2 mt-10">
+              <span>当前进度: {{ reason }}</span>
+              <IconEosIconsLoading class="text-xl"/>
+            </div>
+          </div>
+        </template>
+        <template v-if="importStep === ImportStep.FAIL">
+          <div>
+            <h3 class="text-align-center">同步失败</h3>
+            <div class="mt-10">
+              <span>{{ reason }}</span>
+            </div>
+          </div>
+
+          <div class="flex gap-space justify-end">
+            <BaseButton type="info" @click="logout">退出登录</BaseButton>
+
+            <PopConfirm :title="[
+            {text:'您的用户数据将以压缩包自动下载到您的电脑中，以便您随时恢复',type:'normal'},
+            {text:'随后网站的用户数据将被删除',type:'redBold'},
+            {text:'是否确认继续？',type:'normal'},
+          ]"
+                        @confirm="forgetData"
+            >
+              <BaseButton type="info">放弃数据</BaseButton>
+            </PopConfirm>
+            <BaseButton @click="startSync">再次同步</BaseButton>
+          </div>
+        </template>
       </div>
     </div>
   </div>

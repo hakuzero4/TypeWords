@@ -20,6 +20,7 @@
   "dependencies": {
     "@imengyu/vue3-context-menu": "^1.5.1",
     "@vueuse/core": "14.0.0-alpha.0",
+    "@zumer/snapdom": "^2.0.0",
     "axios": "^1.10.0",
     "compromise": "^14.14.4",
     "copy-to-clipboard": "^3.3.3",
@@ -38,12 +39,14 @@
   "devDependencies": {
     "@alicloud/pop-core": "^1.8.0",
     "@iconify-json/bx": "^1.2.2",
+    "@iconify-json/dinkie-icons": "^1.2.0",
     "@iconify-json/eos-icons": "^1.2.4",
     "@iconify-json/fluent": "^1.2.28",
     "@iconify-json/icon-park-outline": "^1.2.4",
     "@iconify-json/icon-park-solid": "^1.2.4",
     "@iconify-json/ix": "^1.2.10",
     "@iconify-json/material-symbols": "^1.2.33",
+    "@iconify-json/mdi": "^1.2.3",
     "@iconify-json/oui": "^1.2.6",
     "@iconify-json/ph": "^1.2.2",
     "@iconify-json/qlementine-icons": "^1.2.11",

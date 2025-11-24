@@ -663,4 +663,100 @@ provide('currentPractice', currentPractice)
     }
   }
 }
+
+// 移动端适配
+@media (max-width: 768px) {
+  // 优化练习区域布局
+  .practice-article {
+    padding-top: 3rem; // 为固定标题留出空间
+  }
+  
+  // 优化标题区域
+  .typing-article {
+    header {
+      position: fixed;
+      top: 4.5rem; // 避开顶部导航栏
+      left: 0;
+      right: 0;
+      z-index: 100;
+      background: var(--bg-color);
+      padding: 0.5rem 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-bottom: 0;
+      
+      .title {
+        font-size: 1rem;
+        line-height: 1.4;
+        word-break: break-word;
+        
+        .font-family {
+          font-size: 0.9rem;
+        }
+      }
+      
+      .titleTranslate {
+        font-size: 0.8rem;
+        margin-top: 0.2rem;
+        opacity: 0.8;
+      }
+    }
+    
+    .article-content {
+      margin-top: 2rem; // 为固定标题留出空间
+    }
+  }
+  
+  .footer {
+    width: 100%;
+    
+    .bottom {
+      padding: 0.3rem 0.5rem 0.5rem 0.5rem;
+      border-radius: 0.4rem;
+      
+      .stat {
+        margin-top: 0.3rem;
+        gap: 0.2rem;
+        flex-direction: row;
+        overflow-x: auto;
+        
+        .row {
+          min-width: 3.5rem;
+          gap: 0.2rem;
+          
+          .num {
+            font-size: 0.8rem;
+            font-weight: bold;
+          }
+          
+          .name {
+            font-size: 0.7rem;
+          }
+        }
+      }
+      
+      .flex.flex-col.items-center.justify-center.gap-1 {
+        .flex.gap-2.center {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.4rem;
+          
+          .base-icon {
+            padding: 0.3rem;
+            font-size: 1rem;
+            min-height: 44px;
+            min-width: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          }
+        }
+      }
+    }
+    
+    .arrow {
+      font-size: 1rem;
+      padding: 0.3rem;
+    }
+  }
+}
 </style>

@@ -239,3 +239,9 @@ export enum CodeType {
   ChangePhoneNew = 4,
   ChangePhoneOld = 5
 }
+
+export enum ImportStatus {
+  Idle = 0,
+  Success = 1,
+  Fail = 2
+}

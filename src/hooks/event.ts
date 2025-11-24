@@ -16,55 +16,206 @@ export function useWindowClick(cb: (e: PointerEvent) => void) {
 }
 
 export function useEventListener(type: string, listener: EventListenerOrEventListenerObject) {
-  onMounted(() => {
-    if (isMobile()) {
-      let tx: HTMLInputElement = document.querySelector('#typing-listener')
-      if (!tx) {
-        tx = document.createElement('input')
-        tx.id = 'typing-listener'
-        tx.type = 'text'
-      }
-      tx.addEventListener('input', (e: any) => {
-        if (e.data === ' ') e.code = 'Space'
-        if (e.data === null) {
-          e.key = 'Backspace'
-          e.keyCode = 1
-        } else {
-          e.keyCode = 66
-          e.key = e.data
-        }
-
-        e.ctrlKey = false
-        e.altKey = false
-        e.shiftKey = false
-        //@ts-ignore
-        listener(e)
-        e.target.value = '1'
-      })
-      const ss = () => {
-        setTimeout(() => tx.focus(), 100)
-      }
-      window.removeEventListener('click', ss)
-      window.addEventListener('click', ss)
-      window.addEventListener(type, listener)
-      document.body.appendChild(tx)
-      tx.focus()
-    } else {
-      window.addEventListener(type, listener)
+  const invokeListener = (event: KeyboardEvent) => {
+    if (typeof listener === 'function') {
+      return (listener as EventListener)(event)
     }
-  })
-  const remove = () => {
-    if (isMobile()) {
-      let s = document.querySelector('#typing-listener')
-      if (s) {
-        s.removeEventListener(type, listener)
-        s.parentNode.removeChild(s)
-      }
-      window.removeEventListener(type, listener)
-    } else {
-      window.removeEventListener(type, listener)
+    if (listener && typeof (listener as EventListenerObject).handleEvent === 'function') {
+      return (listener as EventListenerObject).handleEvent(event)
     }
   }
+
+  let cleanup: (() => void) | null = null
+
+  onMounted(() => {
+    const cleanupFns: Array<() => void> = []
+    const registerCleanup = (fn: () => void) => cleanupFns.push(fn)
+
+    const performCleanup = () => {
+      while (cleanupFns.length) {
+        const fn = cleanupFns.pop()
+        try {
+          fn()
+        } catch (err) {
+          console.warn('[useEventListener] cleanup error', err)
+        }
+      }
+    }
+
+    if (isMobile() && type === 'keydown') {
+      const ensureMobileInput = () => {
+        let input = document.querySelector('#typing-listener') as HTMLInputElement | null
+        if (!input) {
+          input = document.createElement('input')
+          input.id = 'typing-listener'
+          input.type = 'text'
+          input.autocomplete = 'off'
+          input.autocapitalize = 'off'
+          input.autocorrect = false
+          input.spellcheck = false
+          input.tabIndex = -1
+          input.setAttribute('aria-hidden', 'true')
+          Object.assign(input.style, {
+            position: 'fixed',
+            opacity: '0',
+            pointerEvents: 'none',
+            width: '1px',
+            height: '1px',
+            top: '0',
+            left: '-9999px',
+            zIndex: '-1',
+          })
+        }
+        if (!input.parentNode) {
+          document.body.appendChild(input)
+        }
+        return input
+      }
+
+      const hiddenInput = ensureMobileInput()
+      let isComposing = false
+      const ignoredKeys = new Set<string>()
+      const markIgnore = (key: string) => {
+        ignoredKeys.add(key)
+        window.setTimeout(() => ignoredKeys.delete(key), 150)
+      }
+
+      const createSyntheticEvent = (payload: { key: string; code?: string; keyCode: number }) => {
+        const base = {
+          key: payload.key,
+          code: payload.code ?? '',
+          keyCode: payload.keyCode,
+          which: payload.keyCode,
+          ctrlKey: false,
+          altKey: false,
+          shiftKey: false,
+          metaKey: false,
+          repeat: false,
+          isComposing: false,
+          type,
+          preventDefault() {},
+          stopPropagation() {},
+          stopImmediatePropagation() {},
+        }
+        return base as unknown as KeyboardEvent
+      }
+
+      const dispatchSyntheticKey = (payload: { key: string; code?: string; keyCode: number }) => {
+        markIgnore(payload.key)
+        invokeListener(createSyntheticEvent(payload))
+      }
+
+      const handleCompositionStart = () => {
+        isComposing = true
+      }
+
+      const handleCompositionEnd = (event: CompositionEvent) => {
+        isComposing = false
+        if (!event.data) {
+          hiddenInput.value = ''
+          return
+        }
+        for (const char of event.data) {
+          const keyCode = char === ' ' ? 32 : char.toUpperCase().charCodeAt(0)
+          dispatchSyntheticKey({
+            key: char,
+            code: char === ' ' ? 'Space' : undefined,
+            keyCode,
+          })
+        }
+        hiddenInput.value = ''
+      }
+
+      const handleInput = (event: InputEvent) => {
+        if (isComposing) return
+        const target = event.target as HTMLInputElement | null
+        const value = target?.value ?? ''
+
+        if (event.inputType === 'deleteContentBackward') {
+          dispatchSyntheticKey({ key: 'Backspace', code: 'Backspace', keyCode: 8 })
+          if (target) target.value = ''
+          return
+        }
+
+        const char = value.slice(-1) || (event as any).data?.slice(-1)
+        if (!char) {
+          if (target) target.value = ''
+          return
+        }
+
+        const keyCode = char === ' ' ? 32 : char.toUpperCase().charCodeAt(0)
+        dispatchSyntheticKey({
+          key: char,
+          code: char === ' ' ? 'Space' : undefined,
+          keyCode,
+        })
+
+        window.setTimeout(() => {
+          if (target) target.value = ''
+        }, 0)
+      }
+
+      const shouldFocusInput = (target: HTMLElement | null) => {
+        if (!target) return false
+        if (!window.location.pathname.includes('/practice')) return false
+        const typingWord = target.closest('.typing-word')
+        if (!typingWord) return false
+        if (target.closest('.sentence') || target.closest('.phrase')) return false
+        if (target.classList?.contains('flex') && target.querySelector('.phrase')) return false
+        return true
+      }
+
+      const handleFocusRequest = (event: MouseEvent | TouchEvent) => {
+        const target = event.target as HTMLElement | null
+        if (!shouldFocusInput(target)) return
+        window.setTimeout(() => hiddenInput.focus(), 60)
+      }
+
+      const windowListener = (event: KeyboardEvent) => {
+        if (ignoredKeys.has(event.key)) {
+          ignoredKeys.delete(event.key)
+          return
+        }
+        invokeListener(event)
+      }
+
+      hiddenInput.addEventListener('compositionstart', handleCompositionStart)
+      registerCleanup(() => hiddenInput.removeEventListener('compositionstart', handleCompositionStart))
+
+      hiddenInput.addEventListener('compositionend', handleCompositionEnd)
+      registerCleanup(() => hiddenInput.removeEventListener('compositionend', handleCompositionEnd))
+
+      hiddenInput.addEventListener('input', handleInput)
+      registerCleanup(() => hiddenInput.removeEventListener('input', handleInput))
+
+      window.addEventListener('click', handleFocusRequest)
+      registerCleanup(() => window.removeEventListener('click', handleFocusRequest))
+
+      window.addEventListener('touchstart', handleFocusRequest)
+      registerCleanup(() => window.removeEventListener('touchstart', handleFocusRequest))
+
+      window.addEventListener(type, windowListener)
+      registerCleanup(() => window.removeEventListener(type, windowListener))
+
+      registerCleanup(() => {
+        hiddenInput.value = ''
+      })
+    } else {
+      const windowListener = (event: Event) => invokeListener(event as KeyboardEvent)
+      window.addEventListener(type, windowListener)
+      registerCleanup(() => window.removeEventListener(type, windowListener))
+    }
+
+    cleanup = () => {
+      performCleanup()
+      cleanup = null
+    }
+  })
+
+  const remove = () => {
+    if (cleanup) cleanup()
+  }
+
   onUnmounted(remove)
   onDeactivated(remove)
 }
@@ -161,6 +312,10 @@ export function useStartKeyboardEventListener() {
           || e.keyCode === 229
           //当按下功能键时，不阻止事件传播
         ) && (!e.ctrlKey && !e.altKey)) {
+          if (isMobile() && e.keyCode === 229 && e.key === 'Unidentified') {
+            // 安卓软键盘在keydown阶段不会提供字符，等待input/composition事件来派发实际输入
+            return
+          }
           e.preventDefault()
           emitter.emit(EventKey.onTyping, e)
         } else {

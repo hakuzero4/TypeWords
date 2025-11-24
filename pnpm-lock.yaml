@@ -14,6 +14,9 @@ importers:
       '@vueuse/core':
         specifier: 14.0.0-alpha.0
         version: 14.0.0-alpha.0(vue@3.5.18(typescript@5.9.2))
+      '@zumer/snapdom':
+        specifier: ^2.0.0
+        version: 2.0.0
       axios:
         specifier: ^1.10.0
         version: 1.11.0
@@ -63,6 +66,9 @@ importers:
       '@iconify-json/bx':
         specifier: ^1.2.2
         version: 1.2.2
+      '@iconify-json/dinkie-icons':
+        specifier: ^1.2.0
+        version: 1.2.0
       '@iconify-json/eos-icons':
         specifier: ^1.2.4
         version: 1.2.4
@@ -81,6 +87,9 @@ importers:
       '@iconify-json/material-symbols':
         specifier: ^1.2.33
         version: 1.2.33
+      '@iconify-json/mdi':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@iconify-json/oui':
         specifier: ^1.2.6
         version: 1.2.6
@@ -96,9 +105,15 @@ importers:
       '@iconify-json/simple-icons':
         specifier: ^1.2.48
         version: 1.2.48
+      '@iconify-json/streamline':
+        specifier: ^1.2.5
+        version: 1.2.5
       '@iconify-json/system-uicons':
         specifier: ^1.2.4
         version: 1.2.4
+      '@iconify-json/uiw':
+        specifier: ^1.2.3
+        version: 1.2.3
       '@types/file-saver':
         specifier: ^2.0.7
         version: 2.0.7
@@ -505,6 +520,9 @@ packages:
   '@iconify-json/bx@1.2.2':
     resolution: {integrity: sha512-hZVx6LMEkYckScdRdUuQWcmv8Lm2au6Cnf799TLoR6YgiAfFvaJ4M5ElwcnExvCu8ntsS7jW89r0W5LwBAfZXQ==}
 
+  '@iconify-json/dinkie-icons@1.2.0':
+    resolution: {integrity: sha512-/RSAjK6twyEOKfW9FddZDP+EPMeSIocb4Y4Zq2Y2IbqUxYmNHqXtxidVioBzpv+a3JeiQ61ARlRKtCQ0BqSGpA==}
+
   '@iconify-json/eos-icons@1.2.4':
     resolution: {integrity: sha512-gp2BCSF3+aRgMqE7LRAVxT5nXJLOtfcvGnOYwJz4gc4zxcEqAaOByxFVLZej15jXPRJmUv2TSzMNrQ2gDtw4VA==}
 
@@ -523,6 +541,9 @@ packages:
   '@iconify-json/material-symbols@1.2.33':
     resolution: {integrity: sha512-Bs0X1+/vpJydW63olrGh60zkR8/Y70sI14AIWaP7Z6YQXukzWANH4q3I0sIPklbIn1oL6uwLvh0zQyd6Vh79LQ==}
 
+  '@iconify-json/mdi@1.2.3':
+    resolution: {integrity: sha512-O3cLwbDOK7NNDf2ihaQOH5F9JglnulNDFV7WprU2dSoZu3h3cWH//h74uQAB87brHmvFVxIOkuBX2sZSzYhScg==}
+
   '@iconify-json/oui@1.2.6':
     resolution: {integrity: sha512-dBqxbLKztTtb0Cq3kEyLeYAdyJT2un+FzIZB0ei3busps/OwNIHjqowsVqPwRtHXiXTjiwOHUPbxgcVB0SCIsQ==}
 
@@ -538,8 +559,14 @@ packages:
   '@iconify-json/simple-icons@1.2.48':
     resolution: {integrity: sha512-EACOtZMoPJtERiAbX1De0asrrCtlwI27+03c9OJlYWsly9w1O5vcD8rTzh+kDPjo+K8FOVnq2Qy+h/CzljSKDA==}
 
+  '@iconify-json/streamline@1.2.5':
+    resolution: {integrity: sha512-u6l9BOJoIIPjjDXWl6D/hPDzeBk5WiaEHZ+U9SbkQ14N9hgotaYyIZVMfgF175CG1TTS06j8k15D3FM2OYaFIw==}
+
   '@iconify-json/system-uicons@1.2.4':
     resolution: {integrity: sha512-9WB9dmEm+TRCXI5Ml2IY8zQAPZES8euKxY0VOaf8D6E6ZaEr7ztO6DChMlGg7qWECs3m3FjFUqNgBx8ZpB+djw==}
+
+  '@iconify-json/uiw@1.2.3':
+    resolution: {integrity: sha512-6ThTlo2tXfgHiN6fOMMENnBLDjJc0H0cDdsjvxSqiFWsB24G+ES0/a+ousVd+/wB0KoUCNAKPNws33CU7m+zzA==}
 
   '@iconify/types@2.0.0':
     resolution: {integrity: sha512-+wluvCrRhXrhyOmRDJ3q8mux9JkKy5SJ/v8ol2tu4FVjyYvtEzkc/3pK15ET6RKg4b4w4BmTk1+gsCUhf21Ykg==}
@@ -1226,6 +1253,9 @@ packages:
     resolution: {integrity: sha512-J8cmTJkB0hAwPBXRR5U3N9FJkhPBrhyYiQm21kZ3j/o8W69Pg6JlPSxLOJtkg+AwC/r5x7Gpq2Vglv84vHotwA==}
     peerDependencies:
       vue: ^3.5.0
+
+  '@zumer/snapdom@2.0.0':
+    resolution: {integrity: sha512-e/fkm5wCUd+9CssUIyH09xTeR4DvRTmZLGVOlnXLhr4HeI7sdc6ed8cLPiZKFtiQDRiwD3EKx4RIUrpQOJQY7A==}
 
   acorn@8.15.0:
     resolution: {integrity: sha512-NZyJarBfL7nWwIq+FDL6Zp/yHEhePMNnnJ0y3qfieCrmNvYct8uvtiV41UvlSe6apAfk0fY1FbWx+NwfmpvtTg==}
@@ -4135,6 +4165,10 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
+  '@iconify-json/dinkie-icons@1.2.0':
+    dependencies:
+      '@iconify/types': 2.0.0
+
   '@iconify-json/eos-icons@1.2.4':
     dependencies:
       '@iconify/types': 2.0.0
@@ -4159,6 +4193,10 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
+  '@iconify-json/mdi@1.2.3':
+    dependencies:
+      '@iconify/types': 2.0.0
+
   '@iconify-json/oui@1.2.6':
     dependencies:
       '@iconify/types': 2.0.0
@@ -4179,7 +4217,15 @@ snapshots:
     dependencies:
       '@iconify/types': 2.0.0
 
+  '@iconify-json/streamline@1.2.5':
+    dependencies:
+      '@iconify/types': 2.0.0
+
   '@iconify-json/system-uicons@1.2.4':
+    dependencies:
+      '@iconify/types': 2.0.0
+
+  '@iconify-json/uiw@1.2.3':
     dependencies:
       '@iconify/types': 2.0.0
 
@@ -5009,6 +5055,8 @@ snapshots:
   '@vueuse/shared@14.0.0-alpha.0(vue@3.5.18(typescript@5.9.2))':
     dependencies:
       vue: 3.5.18(typescript@5.9.2)
+
+  '@zumer/snapdom@2.0.0': {}
 
   acorn@8.15.0: {}
 
